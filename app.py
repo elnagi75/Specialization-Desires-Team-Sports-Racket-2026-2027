@@ -176,7 +176,7 @@ if submit_btn:
         st.error("❌ عذراً.. رقم الواتساب يجب أن يتكون من 11 رقماً صحيحاً.")
     else:
         df = pd.read_csv(DATA_FILE)
-        
+        df["مجموع درجات بالأرقام (بدون نسب مئؤية)"] = df["مجموع درجات بالأرقام (بدون نسب مئؤية)"].astype(str)
         # آلية التحديث في حال وجود الرقم القومي مسبقاً
         if str(national_id) in df["الرقم القومي"].astype(str).values:
             idx = df.index[df['الرقم القومي'].astype(str) == str(national_id)].tolist()[0]
