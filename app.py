@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 # 1. إعدادات الصفحة
-st.set_page_config(page_title="منصة تسجيل الرغبات - جامعة المنيا", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية - ألعاب المضرب2027", layout="wide", initial_sidebar_state="collapsed")
 
 # 2. ملف البيانات
 DATA_FILE = "students_data_2027.csv"
