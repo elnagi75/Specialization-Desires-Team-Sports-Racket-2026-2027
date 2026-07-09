@@ -137,4 +137,39 @@ st.markdown("<br>", unsafe_allow_html=True)
 if st.button("إرسال واعتماد الرغبات نهائياً", use_container_width=True):
     if not name or not national_id or not score or not whatsapp or pref1 == "اختر التخصص..." or pref5 == "اختر التخصص...":
         st.error("❌ يرجى استكمال جميع البيانات وتحديد الرغبات الخمس قبل الإرسال.")
-    elif len(national_id) != 1
+    elif len(national_id) != 14 or not national_id.isdigit():
+        st.error("❌ عذراً.. الرقم القومي يجب أن يتكون من 14 رقماً صحيحاً.")
+    elif len(whatsapp) != 11 or not whatsapp.isdigit():
+        st.error("❌ عذراً.. رقم الواتساب يجب أن يتكون من 11 رقماً صحيحاً.")
+    else:
+        df = pd.read_csv(DATA_FILE).astype(str)
+        
+        if str(national_id) in df["الرقم القومي"].values:
+            idx = df.index[df['الرقم القومي'] == str(national_id)].tolist()[0]
+            df.loc[idx, "الاسم رباعي"] = name
+            df.loc[idx, "مجموع درجات بالأرقام (بدون نسب مئؤية)"] = str(score)
+            df.loc[idx, "رقم هاتف الواتساب"] = str(whatsapp)
+            df.loc[idx, "(1) الرغبة الأولى:"] = pref1
+            df.loc[idx, "(2) الرغبة الثانية:"] = pref2
+            df.loc[idx, "(3) الرغبة الثالثة:"] = pref3
+            df.loc[idx, "(4) الرغبة الرابعة:"] = pref4
+            df.loc[idx, "(5) الرغبة الخامسة والأخيرة:"] = pref5
+            
+            df.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
+            st.success(f"🔄 تم تحديث رغباتك بنجاح يا {name}. تم اعتماد التعديل الأخير.")
+        else:
+            new_row = pd.DataFrame([{
+                "م": str(len(df) + 1),
+                "الاسم رباعي": name,
+                "الرقم القومي": str(national_id),
+                "مجموع درجات بالأرقام (بدون نسب مئؤية)": str(score),
+                "رقم هاتف الواتساب": str(whatsapp),
+                "(1) الرغبة الأولى:": pref1,
+                "(2) الرغبة الثانية:": pref2,
+                "(3) الرغبة الثالثة:": pref3,
+                "(4) الرغبة الرابعة:": pref4,
+                "(5) الرغبة الخامسة والأخيرة:": pref5
+            }])
+            df = pd.concat([df, new_row], ignore_index=True)
+            df.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
+            st.success(f"✅ تم حفظ رغباتك بنجاح واعتمادها يا {name}. نتمنى لك التوفيق!")
