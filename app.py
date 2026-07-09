@@ -83,13 +83,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 7. قراءة البيانات بأمان
-df = pd.read_csv(DATA_FILE).astype(str)
+# 7. قراءة البيانات بأمان (مع الحفاظ على الصفر على اليسار)
+df = pd.read_csv(DATA_FILE, dtype=str).fillna("")
 
 # 8. القسم الأول: البيانات الأساسية
 st.markdown('<h3 style="color: #1E3A8A; font-weight: bold; font-size: 24px;">أولاً: البيانات الأساسية</h3>', unsafe_allow_html=True)
 
-national_id = st.text_input("الرقم القومي (14 رقماً) - أدخله أولاً لعرض بياناتك للتعديل أو للتسجيل الجديد:", max_chars=14)
+national_id = st.text_input("أدخل الرقم القومي (14 رقماً) فقط:", max_chars=14)
 
 # استرجاع البيانات الأساسية فقط إن وجدت
 student_data = df[df["الرقم القومي"] == str(national_id)] if national_id and len(national_id) == 14 else pd.DataFrame()
@@ -116,7 +116,6 @@ with center_col:
     st.info("💡 قم باختيار الرغبة الأولى لتفعيل باقي الرغبات. لا يمكن اختيار نفس التخصص مرتين.")
     all_sports = ["كرة القدم", "الكرة الطائرة", "كرة السلة", "كرة اليد", "ألعاب المضرب"]
 
-    # الرغبات تبدأ فارغة دائماً
     pref1 = st.selectbox("الرغبة الأولى:", ["اختر التخصص..."] + all_sports)
 
     options2 = ["اختر التخصص..."] + [s for s in all_sports if s != pref1]
@@ -142,7 +141,7 @@ if st.button("إرسال واعتماد الرغبات نهائياً", use_cont
     elif len(whatsapp) != 11 or not whatsapp.isdigit():
         st.error("❌ عذراً.. رقم الواتساب يجب أن يتكون من 11 رقماً صحيحاً.")
     else:
-        df = pd.read_csv(DATA_FILE).astype(str)
+        df = pd.read_csv(DATA_FILE, dtype=str)
         
         if str(national_id) in df["الرقم القومي"].values:
             idx = df.index[df['الرقم القومي'] == str(national_id)].tolist()[0]
