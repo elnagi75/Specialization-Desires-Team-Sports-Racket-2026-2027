@@ -1,12 +1,13 @@
 import streamlit as st
 import pandas as pd
+import streamlit.components.v1 as components
 from datetime import date
 import os
 
 # 1. إعدادات الصفحة
-st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية", layout="centered", page_icon="🎓")
+st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية وألعاب المضرب", layout="centered", page_icon="🎓")
 
-# تنسيقات CSS المتقدمة لضبط العنوان، النصوص، والزر الأحمر القاني
+# تنسيقات CSS العامة للمنصة
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
@@ -27,7 +28,7 @@ st.markdown("""
     }
     
     .main-title h1 {
-        font-size: 24px !important;
+        font-size: 22px !important;
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1.5;
@@ -95,27 +96,6 @@ st.markdown("""
         transform: translateY(-2px);
         box-shadow: 0 6px 15px rgba(139, 0, 0, 0.4) !important;
     }
-
-    /* إعدادات الطباعة النظيفة لملف PDF */
-    @media print {
-        body * {
-            visibility: hidden;
-        }
-        #printable-receipt, #printable-receipt * {
-            visibility: visible;
-        }
-        #printable-receipt {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 20px;
-            background: white;
-        }
-        .no-print {
-            display: none !important;
-        }
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -153,7 +133,7 @@ with col_logo1:
 with col_title:
     st.markdown("""
         <div class="main-title">
-            <h1>منصة تسجيل الرغبات - الرياضات الجماعية وألعاب المضرب والتخصصات الأكاديمية - (2026 - 2027)</h1>
+            <h1>قسم الرياضة الجماعية وألعاب المضرب - كلية علوم الرياضة - جامعة المنيا (2026 - 2027)</h1>
         </div>
     """, unsafe_allow_html=True)
 
@@ -170,7 +150,7 @@ st.markdown("""
         <li><b>الخطوة البينية الأمنية:</b> أدخل (الرقم القومي 14 رقماً) و(رقم الواتساب) واضغط للتحقق وفتح صفحة رغباتك.</li>
         <li><b>ترتيب الرغبات:</b> يجب ترتيب <b>جميع التخصصات السبعة</b> دون تكرار (كل تخصص يتم اختياره يختفي تلقائياً من الخيارات التالية).</li>
         <li><b>مواعيد وقابلية التعديل:</b> ⏳ يفتح باب التسجيل والتعديل من يوم <b>الأحد 9-8-2026</b> حتى يوم <b>السبت 22-8-2026</b>.</li>
-        <li><b>طباعة الإيصال:</b> 🖨️ بعد حفظ رغباتك، سيظهر لك زر الطباعة فوراً لحفظ رغباتك كملف PDF كمستند رسمي.</li>
+        <li><b>طباعة الإيصال:</b> 🖨️ بعد حفظ رغباتك، سيظهر لك زر طباعة نشط لحفظ رغباتك كملف PDF كمستند رسمي.</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
@@ -205,7 +185,6 @@ if df is None:
 
 student_names = df['الاسم'].astype(str).tolist()
 
-# استخراج اسم القسم أو الشعبة تلقائياً إن وجد في ملف الإكسيل
 def get_dept(row):
     for col in ['القسم', 'شعبة', 'التخصص', 'البرنامج']:
         if col in row.index and pd.notna(row[col]):
@@ -219,7 +198,6 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
     student_data = df[df['الاسم'] == selected_name].iloc[0]
     dept_name = get_dept(student_data)
     
-    # التحقق من وجود تسجيل سابق لاسترجاع البيانات
     saved_record = None
     if os.path.exists("student_requests.xlsx"):
         df_reqs = pd.read_excel("student_requests.xlsx")
@@ -229,7 +207,6 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
 
     st.success(f"✅ أهلاً بك يا {selected_name}.. تم العثور على بياناتك بنجاح!")
     
-    # عرض الدرجات والقسم (مغلقة)
     colA, colB, colC, colD = st.columns(4)
     with colA:
         st.text_input("المجموع الكلي", value=str(student_data['المجموع']), disabled=True)
@@ -242,7 +219,6 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
         
     st.markdown("---")
     
-    # الخطوة البينية: إدخال الرقم القومي ورقم الهاتف أولاً لفتح الرغبات
     st.markdown("### 📱 الخطوة الأمنية: إدخال بيانات التوثيق")
     
     default_id = str(saved_record['الرقم القومي']) if saved_record is not None else ""
@@ -251,7 +227,6 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
     nat_id = st.text_input("الرقم القومي (14 رقماً):", value=default_id, max_chars=14, placeholder="أدخل الرقم القومي المدون ببطاقة الرقم القومي")
     phone = st.text_input("رقم الهاتف (واتساب):", value=default_phone, max_chars=11, placeholder="01xxxxxxxx0")
     
-    # زر أو شرط لفتح الرغبات
     if len(nat_id) == 14 and len(phone) >= 10:
         if saved_record is not None:
             st.info("💡 تم العثور على رغباتك المسجلة مسبقاً. يمكنك تعديلها وإعادة الحفظ أدناه.")
@@ -273,12 +248,10 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 return opts.index(val) + 1
             return 0
 
-        # الرغبة الأولى (بتنسيق طبيعي موحد)
         r1_opts = ["اختر التخصص..."] + all_options
         r1_val = get_saved_choice(1)
         r1 = st.selectbox("⭐ الرغبة الأولى (الأساسية):", r1_opts, index=get_index(r1_val, all_options))
         
-        # الرغبات الباقية مع منع التكرار الديناميكي
         opts_after_r1 = [opt for opt in all_options if opt != r1]
         r2 = st.selectbox("الرغبة الثانية:", ["اختر التخصص..."] + opts_after_r1, index=get_index(get_saved_choice(2), opts_after_r1))
         
@@ -332,66 +305,154 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 st.balloons()
                 st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
 
-        # عرض الإيصال الرسمي وزر الطباعة النشط
+        # عرض الإيصال وإصلاح زر الطباعة من خلال Component معزول يعمل بنسبة 100%
         if saved_record is not None or st.session_state.get('just_saved', False):
-            st.markdown("---")
-            st.markdown("""
-            <div id="printable-receipt" style="background: #ffffff; border: 2px solid #1e3c72; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-top: 20px;">
-                <div style="text-align: center; border-bottom: 2px solid #1e3c72; padding-bottom: 15px; margin-bottom: 15px;">
-                    <h2 style="color: #1e3c72; margin: 0; font-size: 22px;">إيصال تسجيل رغبات التخصصات الأكاديمية</h2>
-                    <p style="color: #555; margin: 5px 0 0 0; font-size: 14px;">كلية علوم الرياضة - جامعة المنيا (2026 - 2027)</p>
+            cur_r1 = r1 if 'r1' in locals() else saved_record.get('رغبة 1')
+            cur_r2 = r2 if 'r2' in locals() else saved_record.get('رغبة 2')
+            cur_r3 = r3 if 'r3' in locals() else saved_record.get('رغبة 3')
+            cur_r4 = r4 if 'r4' in locals() else saved_record.get('رغبة 4')
+            cur_r5 = r5 if 'r5' in locals() else saved_record.get('رغبة 5')
+            cur_r6 = r6 if 'r6' in locals() else saved_record.get('رغبة 6')
+            cur_r7 = r7 if 'r7' in locals() else saved_record.get('رغبة 7')
+
+            receipt_html = f"""
+            <!DOCTYPE html>
+            <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+                    body {{
+                        font-family: 'Cairo', sans-serif;
+                        background-color: #fcfcfc;
+                        margin: 0;
+                        padding: 10px;
+                        direction: rtl;
+                        text-align: right;
+                    }}
+                    .receipt-box {{
+                        background: #ffffff;
+                        border: 2px solid #1e3c72;
+                        padding: 25px;
+                        border-radius: 15px;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    }}
+                    .header {{
+                        text-align: center;
+                        border-bottom: 2px solid #1e3c72;
+                        padding-bottom: 15px;
+                        margin-bottom: 15px;
+                    }}
+                    .header h2 {{
+                        color: #1e3c72;
+                        margin: 0;
+                        font-size: 20px;
+                    }}
+                    .header p {{
+                        color: #555;
+                        margin: 5px 0 0 0;
+                        font-size: 13px;
+                    }}
+                    .content p {{
+                        font-size: 14px;
+                        line-height: 1.8;
+                        margin: 6px 0;
+                        color: #333;
+                    }}
+                    ol {{
+                        padding-right: 20px;
+                        font-weight: bold;
+                        margin: 10px 0;
+                    }}
+                    ol li {{
+                        font-size: 14px;
+                        margin-bottom: 6px;
+                        color: #2c3e50;
+                    }}
+                    .footer {{
+                        text-align: center;
+                        margin-top: 20px;
+                        font-size: 11px;
+                        color: #777;
+                        border-top: 1px solid #eee;
+                        padding-top: 10px;
+                    }}
+                    .print-btn-container {{
+                        text-align: center;
+                        background: #f1f8e9;
+                        border: 1px solid #81c784;
+                        padding: 15px;
+                        border-radius: 10px;
+                        margin-top: 20px;
+                    }}
+                    .print-btn {{
+                        background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+                        color: white;
+                        padding: 12px 25px;
+                        font-size: 17px;
+                        font-weight: bold;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+                        width: 100%;
+                        font-family: 'Cairo', sans-serif;
+                    }}
+                    .print-btn:hover {{
+                        opacity: 0.95;
+                    }}
+                    @media print {{
+                        .print-btn-container {{
+                            display: none;
+                        }}
+                        .receipt-box {{
+                            border: none;
+                            box-shadow: none;
+                            padding: 0;
+                        }}
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="receipt-box">
+                    <div class="header">
+                        <h2>إيصال تسجيل رغبات التخصصات الأكاديمية</h2>
+                        <p>قسم الرياضة الجماعية وألعاب المضرب - كلية علوم الرياضة - جامعة المنيا (2026 - 2027)</p>
+                    </div>
+                    <div class="content">
+                        <p><b>اسم الطالب:</b> {selected_name}</p>
+                        <p><b>الرقم القومي:</b> {nat_id}</p>
+                        <p><b>رقم الواتساب:</b> {phone}</p>
+                        <p><b>القسم / الشعبة:</b> {dept_name}</p>
+                        <p><b>المجموع الكلي:</b> {student_data['المجموع']} | <b>النسبة المئوية:</b> {student_data['النسبة']}% | <b>التقدير:</b> {student_data['التقدير']}</p>
+                        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+                        <h4 style="color: #1e3c72; margin-bottom: 10px;">ترتيب الرغبات المعتمد:</h4>
+                        <ol>
+                            <li>الرغبة الأولى: {cur_r1}</li>
+                            <li>الرغبة الثانية: {cur_r2}</li>
+                            <li>الرغبة الثالثة: {cur_r3}</li>
+                            <li>الرغبة الرابعة: {cur_r4}</li>
+                            <li>الرغبة الخامسة: {cur_r5}</li>
+                            <li>الرغبة السادسة: {cur_r6}</li>
+                            <li>الرغبة السابعة: {cur_r7}</li>
+                        </ol>
+                    </div>
+                    <div class="footer">
+                        تم استخراج هذا المستند إلكترونياً من منصة الكنترول الرسمية ويعتبر مستنداً رسمياً للتسجيل.
+                    </div>
                 </div>
-                <div style="font-size: 15px; color: #333; line-height: 1.8;">
-                    <p><b>اسم الطالب:</b> {}</p>
-                    <p><b>الرقم القومي:</b> {}</p>
-                    <p><b>رقم الواتساب:</b> {}</p>
-                    <p><b>القسم / الشعبة:</b> {}</p>
-                    <p><b>المجموع الكلي:</b> {} | <b>النسبة المئوية:</b> {}% | <b>التقدير:</b> {}</p>
-                    <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
-                    <h4 style="color: #1e3c72; margin-bottom: 10px;">ترتيب الرغبات المعتمد:</h4>
-                    <ol style="padding-right: 20px; font-weight: bold;">
-                        <li>الرغبة الأولى: {}</li>
-                        <li>الرغبة الثانية: {}</li>
-                        <li>الرغبة الثالثة: {}</li>
-                        <li>الرغبة الرابعة: {}</li>
-                        <li>الرغبة الخامسة: {}</li>
-                        <li>الرغبة السادسة: {}</li>
-                        <li>الرغبة السابعة: {}</li>
-                    </ol>
-                </div>
-                <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 10px;">
-                    تم استخراج هذا المستند إلكترونياً من منصة الكنترول الرسمية ويعتبر مستنداً رسمياً للتسجيل.
-                </div>
-            </div>
-            """.format(
-                selected_name, 
-                nat_id, 
-                phone, 
-                dept_name,
-                student_data['المجموع'], 
-                student_data['النسبة'], 
-                student_data['التقدير'],
-                r1 if 'r1' in locals() else (saved_record.get('رغبة 1') if saved_record is not None else ""),
-                r2 if 'r2' in locals() else (saved_record.get('رغبة 2') if saved_record is not None else ""),
-                r3 if 'r3' in locals() else (saved_record.get('رغبة 3') if saved_record is not None else ""),
-                r4 if 'r4' in locals() else (saved_record.get('رغبة 4') if saved_record is not None else ""),
-                r5 if 'r5' in locals() else (saved_record.get('رغبة 5') if saved_record is not None else ""),
-                r6 if 'r6' in locals() else (saved_record.get('رغبة 6') if saved_record is not None else ""),
-                r7 if 'r7' in locals() else (saved_record.get('رغبة 7') if saved_record is not None else "")
-            ), unsafe_allow_html=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # زر الطباعة والحفظ بصيغة PDF الفعال والنشط
-            st.markdown("""
-                <div style="text-align: center; background: #f1f8e9; border: 1px solid #81c784; padding: 15px; border-radius: 10px;" class="no-print">
-                    <button onclick="window.print(); return false;" style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 12px 25px; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.15); width: 100%;">
+                
+                <div class="print-btn-container">
+                    <button class="print-btn" onclick="window.print()">
                         🖨️ طباعة أو حفظ الإيصال (PDF)
                     </button>
-                    <p style="margin-top: 10px; color: #2e7d32; font-weight: 700; font-size: 15px;">
+                    <p style="margin-top: 8px; color: #2e7d32; font-weight: 700; font-size: 14px; margin-bottom: 0;">
                         📌 احفظ رغباتك ملف pdf كمستند رسمي لك
                     </p>
                 </div>
-            """, unsafe_allow_html=True)
+            </body>
+            </html>
+            """
+            components.html(receipt_html, height=580, scrolling=True)
     else:
         st.warning("🔒 يرجى إدخال الرقم القومي المكون من 14 رقماً ورقم الهاتف (واتساب) بشكل صحيح لفتح خانات ترتيب الرغبات.")
