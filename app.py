@@ -6,39 +6,39 @@ import os
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية", layout="centered", page_icon="🎓")
 
-# تنسيقات CSS لضبط اتجاه الكتابة والإبهار البصري
+# تنسيقات CSS المتقدمة لضبط العنوان (توسيط وبنفس الحجم الكبير)، ونصوص المنصة (يمين)، والزر الأحمر القاني
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
     
     html, body, [class*="css"] {
         font-family: 'Cairo', sans-serif;
-        direction: RTL !important;
-        text-align: right !important;
     }
     
-    /* تنسيق العنوان الرئيسي */
+    /* تنسيق العنوان الرئيسي: توسيط وبنفس الحجم والنمط الكبير */
     .main-title {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         color: white;
-        padding: 20px;
+        padding: 25px 20px;
         border-radius: 15px;
-        text-align: center;
+        text-align: center !important;
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
+        margin-bottom: 25px;
     }
     
     .main-title h1 {
-        font-size: 26px;
-        font-weight: 900;
-        margin-bottom: 5px;
-        color: #ffffff;
+        font-size: 26px !important;
+        font-weight: 900 !important;
+        color: #ffffff !important;
+        line-height: 1.5;
+        margin: 0 !important;
+        text-align: center !important;
     }
-    
-    .main-title p {
-        font-size: 15px;
-        color: #e0e0e0;
-        margin: 0;
+
+    /* اتجاه وباقي نصوص المنصة ناحية اليمين */
+    .stMarkdown, p, li, label, .stTextInput, .stSelectbox {
+        direction: RTL !important;
+        text-align: right !important;
     }
 
     /* صندوق التعليمات */
@@ -46,22 +46,26 @@ st.markdown("""
         background-color: #f8f9fa;
         border-right: 6px solid #1e3c72;
         border-radius: 10px;
-        padding: 15px;
+        padding: 20px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
+        margin-bottom: 25px;
+        direction: RTL !important;
+        text-align: right !important;
     }
     
     .instructions-box h3 {
         color: #1e3c72;
         font-weight: 700;
         margin-top: 0;
+        text-align: right !important;
     }
     
     .instructions-box li {
-        font-size: 14px;
+        font-size: 15px;
         color: #333;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
         font-weight: 600;
+        text-align: right !important;
     }
 
     /* تمييز الرغبة الأولى بشكل مبهج وكبير */
@@ -71,35 +75,42 @@ st.markdown("""
         padding: 15px;
         border-radius: 12px;
         margin-bottom: 15px;
+        direction: RTL !important;
     }
     
     .first-choice-container label {
         font-size: 20px !important;
         font-weight: 900 !important;
         color: #856404 !important;
+        text-align: right !important;
     }
 
-    .stSelectbox, .stTextInput {
+    /* تكبير وتظبيط خطوط الرغبات وباقي الحقول */
+    .stSelectbox label, .stTextInput label {
+        font-size: 17px !important;
+        font-weight: 700 !important;
+        color: #2c3e50 !important;
         text-align: right !important;
     }
     
-    /* زر الحفظ */
+    /* زر الحفظ والتأكيد بلون أحمر قاني فخم */
     .stButton>button {
         width: 100%;
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        color: white;
-        font-size: 18px;
-        font-weight: 700;
-        padding: 12px;
-        border-radius: 10px;
-        border: none;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        background: linear-gradient(135deg, #8B0000 0%, #B22222 100%) !important;
+        color: white !important;
+        font-size: 19px !important;
+        font-weight: 700 !important;
+        padding: 14px !important;
+        border-radius: 10px !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3) !important;
         transition: 0.3s;
     }
     
     .stButton>button:hover {
+        background: linear-gradient(135deg, #A52A2A 0%, #DC143C 100%) !important;
         transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        box-shadow: 0 6px 15px rgba(139, 0, 0, 0.4) !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -128,7 +139,7 @@ if admin_pass == "2027":
         st.warning("لم يقم أي طالب بالتسجيل حتى الآن.")
     st.stop()
 
-# 3. عرض الشعارات الأكاديمية والعنوان الرئيسي
+# 3. عرض الشعارات الأكاديمية والعنوان الرئيسي (بتوسيط ونمط موحد كبير)
 col_logo1, col_title, col_logo2 = st.columns([1, 4, 1])
 
 with col_logo1:
@@ -138,8 +149,7 @@ with col_logo1:
 with col_title:
     st.markdown("""
         <div class="main-title">
-            <h1>منصة تسجيل الرغبات - الرياضات الجماعية</h1>
-            <p>ألعاب المضرب والتخصصات الأكاديمية (2026 - 2027)</p>
+            <h1>منصة تسجيل الرغبات - الرياضات الجماعية وألعاب المضرب والتخصصات الأكاديمية - (2026 - 2027)</h1>
         </div>
     """, unsafe_allow_html=True)
 
