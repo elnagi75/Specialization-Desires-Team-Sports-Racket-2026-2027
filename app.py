@@ -122,19 +122,19 @@ admin_pass = st.sidebar.text_input("أدخل كلمة المرور:", type="pass
 if admin_pass == "2027":
     st.sidebar.success("تم الدخول بنجاح")
     st.title("📥 لوحة تحكم الإدارة (تحميل الرغبات)")
-    st.info("هنا يتم تجميع بيانات الطلاب الذين سجلوا رغباتهم لسحبها في ملف إكسيل.")
+    st.info("هنا يتم تجميع بيانات الطلاب الذين سجلوا رغباتهم في ملف إكسيل منظم.")
     
-    if os.path.exists("student_requests.csv"):
-        df_requests = pd.read_csv("student_requests.csv")
+    if os.path.exists("student_requests.xlsx"):
+        df_requests = pd.read_excel("student_requests.xlsx")
         st.dataframe(df_requests)
         
-        csv = df_requests.to_csv(index=False).encode('utf-8-sig')
-        st.download_button(
-            label="📥 تحميل كشف الرغبات النهائي (Excel/CSV)",
-            data=csv,
-            file_name='student_requests.csv',
-            mime='text/csv',
-        )
+        with open("student_requests.xlsx", "rb") as f:
+            st.download_button(
+                label="📥 تحميل كشف الرغبات النهائي (Excel)",
+                data=f,
+                file_name='student_requests.xlsx',
+                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            )
     else:
         st.warning("لم يقم أي طالب بالتسجيل حتى الآن.")
     st.stop()
@@ -209,8 +209,8 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
     
     # التحقق من وجود تسجيل سابق لاسترجاع البيانات
     saved_record = None
-    if os.path.exists("student_requests.csv"):
-        df_reqs = pd.read_csv("student_requests.csv")
+    if os.path.exists("student_requests.xlsx"):
+        df_reqs = pd.read_excel("student_requests.xlsx")
         match = df_reqs[df_reqs['الاسم'] == selected_name]
         if not match.empty:
             saved_record = match.iloc[0]
@@ -297,8 +297,8 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
             else:
                 new_data = pd.DataFrame({
                     "الاسم": [selected_name],
-                    "الرقم القومي": [nat_id],
-                    "رقم الهاتف": [phone],
+                    "الرقم القومي": [str(nat_id)],
+                    "رقم الهاتف": [str(phone)],
                     "المجموع": [student_data['المجموع']],
                     "النسبة": [student_data['النسبة']],
                     "التقدير": [student_data['التقدير']],
@@ -306,16 +306,16 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                     "رغبة 4": [r4], "رغبة 5": [r5], "رغبة 6": [r6], "رغبة 7": [r7]
                 })
                 
-                if os.path.exists("student_requests.csv"):
-                    df_requests = pd.read_csv("student_requests.csv")
+                if os.path.exists("student_requests.xlsx"):
+                    df_requests = pd.read_excel("student_requests.xlsx")
                     df_requests = df_requests[df_requests['الاسم'] != selected_name]
                     df_requests = pd.concat([df_requests, new_data], ignore_index=True)
                 else:
                     df_requests = new_data
                     
-                df_requests.to_csv("student_requests.csv", index=False)
+                df_requests.to_excel("student_requests.xlsx", index=False)
                 
                 st.balloons()
-                st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
+                st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح في ملف الإكسيل الرسمي.")
     else:
         st.warning("🔒 يرجى إدخال الرقم القومي المكون من 14 رقماً ورقم الهاتف (واتساب) بشكل صحيح لفتح خانات ترتيب الرغبات.")
