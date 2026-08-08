@@ -150,7 +150,7 @@ st.markdown("""
         <li><b>الخطوة البينية الأمنية:</b> أدخل (الرقم القومي 14 رقماً) و(رقم الواتساب) واضغط للتحقق وفتح صفحة رغباتك.</li>
         <li><b>ترتيب الرغبات:</b> يجب ترتيب <b>جميع التخصصات السبعة</b> دون تكرار (كل تخصص يتم اختياره يختفي تلقائياً من الخيارات التالية).</li>
         <li><b>مواعيد وقابلية التعديل:</b> ⏳ يفتح باب التسجيل والتعديل من يوم <b>الأحد 9-8-2026</b> حتى يوم <b>السبت 22-8-2026</b>.</li>
-        <li><b>طباعة الإيصال:</b> 🖨️ بعد حفظ رغباتك، سيظهر لك زر طباعة نشط لحفظ رغباتك كملف PDF كمستند رسمي.</li>
+        <li><b>طباعة الإيصال:</b> 🖨️ بعد حفظ رغباتك، سيظهر لك زر طباعة نشط لحفظ رغباتك كملف PDF باسمك الرسمي.</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
@@ -305,7 +305,7 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 st.balloons()
                 st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
 
-        # عرض الإيصال وإصلاح زر الطباعة من خلال Component معزول يعمل بنسبة 100%
+        # عرض الإيصال مع تحديد اسم الطالب كعنوان افتراضي لملف الـ PDF عند الطباعة والحفظ
         if saved_record is not None or st.session_state.get('just_saved', False):
             cur_r1 = r1 if 'r1' in locals() else saved_record.get('رغبة 1')
             cur_r2 = r2 if 'r2' in locals() else saved_record.get('رغبة 2')
@@ -320,6 +320,7 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
+                <title>{selected_name}</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
                     body {{
