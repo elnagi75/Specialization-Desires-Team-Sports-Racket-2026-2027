@@ -12,6 +12,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# إضافة الشعارات الأكاديمية (الجامعة والكلية)
+col1, col2, col3 = st.columns([1, 2, 1])
+try:
+    with col1:
+        st.image("fac_logo.png", use_column_width=True)
+    with col3:
+        st.image("uni_logo.png", use_column_width=True)
+except:
+    pass # تجاوز في حال عدم تطابق أسماء الصور
+
 st.title("منصة تسجيل الرغبات - الرياضات الجماعية وألعاب المضرب (2026-2027)")
 st.write("مرحباً بك.. يرجى البحث عن اسمك لاستدعاء بياناتك، ثم إدخال رقم الهاتف وترتيب رغباتك.")
 st.write("---")
@@ -21,8 +31,8 @@ st.write("---")
 def load_data():
     try:
         # قراءة الملف واستبعاد أي صفوف فارغة في عمود الاسم
-df = pd.read_excel("data.xlsx")
-df = df.dropna(subset=['الاسم'])
+        df = pd.read_excel("data.xlsx")
+        df = df.dropna(subset=['الاسم'])
         return df
     except FileNotFoundError:
         return None
@@ -30,7 +40,7 @@ df = df.dropna(subset=['الاسم'])
 df = load_data()
 
 if df is None:
-    st.error("⚠️ ملف قاعدة البيانات (جماعية.xlsx) غير موجود. يرجى رفعه بجوار ملف التطبيق.")
+    st.error("⚠️ ملف قاعدة البيانات (data.xlsx) غير موجود. يرجى رفعه بجوار ملف التطبيق.")
     st.stop()
 
 student_names = df['الاسم'].astype(str).tolist()
@@ -78,5 +88,4 @@ if selected_name:
         elif not phone or len(phone) < 10:
             st.error("⚠️ يرجى إدخال رقم هاتف صحيح ومكتمل.")
         else:
-            # رسالة نجاح مبدئية (سيتم لاحقاً ربطها بقاعدة الحفظ النهائية)
             st.success(f"🎉 تم تسجيل رغباتك بنجاح يا {selected_name}!")
