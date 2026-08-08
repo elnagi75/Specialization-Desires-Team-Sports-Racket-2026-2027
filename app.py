@@ -6,7 +6,7 @@ import os
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية", layout="centered", page_icon="🎓")
 
-# تنسيقات CSS المتقدمة لضبط العنوان، النصوص، والزر الأحمر القاني
+# تنسيقات CSS المتقدمة + تنسيق خاص للطباعة وحفظ PDF (إخفاء العناصر الزائدة وإبراز الإيصال)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
@@ -112,6 +112,27 @@ st.markdown("""
         transform: translateY(-2px);
         box-shadow: 0 6px 15px rgba(139, 0, 0, 0.4) !important;
     }
+
+    /* إعدادات الطباعة النظيفة لملف PDF */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #printable-receipt, #printable-receipt * {
+            visibility: visible;
+        }
+        #printable-receipt {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+            background: white;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -162,11 +183,11 @@ st.markdown("""
 <div class="instructions-box">
     <h3>📌 تعليمات هامة للتسجيل:</h3>
     <ul>
-        <li><b>استدعاء البيانات:</b> ابدأ بكتابة أول حرفين من اسمك في خانة البحث، وقم باختياره لتظهر درجاتك المعتمدة.</li>
+        <li><b>استدعاء البيانات:</b> ابدأ بكتابة أول حرفين من اسمك في خانة البحث أدناه، وقم باختياره لتظهر درجاتك المعتمدة.</li>
         <li><b>الخطوة البينية الأمنية:</b> أدخل (الرقم القومي 14 رقماً) و(رقم الواتساب) واضغط على زر التحقق لفتح صفحة رغباتك.</li>
         <li><b>ترتيب الرغبات:</b> يجب ترتيب <b>جميع التخصصات السبعة</b> دون تكرار (كل تخصص يتم اختياره يختفي تلقائياً من الخيارات التالية).</li>
         <li><b>مواعيد وقابلية التعديل:</b> ⏳ يفتح باب التسجيل والتعديل من يوم <b>الأحد 9-8-2026</b> حتى يوم <b>السبت 22-8-2026</b>.</li>
-        <li><b>التخلف عن التسجيل:</b> ⚠️ الطالب الذي لا يسجل رغباته خلال هذه الفترة، سيتم توزيعه آلياً وفقاً للأماكن الشاغرة.</li>
+        <li><b>طباعة الإيصال:</b> 🖨️ بعد حفظ رغباتك، سيظهر لك زر الطباعة فوراً لحفظ رغباتك كملف PDF كمستند رسمي.</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
@@ -315,7 +336,68 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                     
                 df_requests.to_excel("student_requests.xlsx", index=False)
                 
+                st.session_state['just_saved'] = True
                 st.balloons()
-                st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح في ملف الإكسيل الرسمي.")
+                st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
+
+        # عرض زر وطباعة الإيصال الرسمي (يظهر بعد الحفظ أو إذا كان لديه تسجيل مسبق محفوظ)
+        if saved_record is not None or st.session_state.get('just_saved', False):
+            st.markdown("---")
+            st.markdown("""
+            <div id="printable-receipt" style="background: #ffffff; border: 2px solid #1e3c72; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-top: 20px;">
+                <div style="text-align: center; border-bottom: 2px solid #1e3c72; padding-bottom: 15px; margin-bottom: 15px;">
+                    <h2 style="color: #1e3c72; margin: 0; font-size: 22px;">إيصال تسجيل رغبات التخصصات الأكاديمية</h2>
+                    <p style="color: #555; margin: 5px 0 0 0; font-size: 14px;">كلية علوم الرياضة - جامعة المنيا (2026 - 2027)</p>
+                </div>
+                <div style="font-size: 15px; color: #333; line-height: 1.8;">
+                    <p><b>اسم الطالب:</b> {}</p>
+                    <p><b>الرقم القومي:</b> {}</p>
+                    <p><b>رقم الواتساب:</b> {}</p>
+                    <p><b>المجموع الكلي:</b> {} | <b>النسبة المئوية:</b> {}% | <b>التقدير:</b> {}</p>
+                    <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+                    <h4 style="color: #1e3c72; margin-bottom: 10px;">ترتيب الرغبات المعتمد:</h4>
+                    <ol style="padding-right: 20px; font-weight: bold;">
+                        <li style="color: #b71c1c; font-size: 17px;">الرغبة الأولى: {}</li>
+                        <li>الرغبة الثانية: {}</li>
+                        <li>الرغبة الثالثة: {}</li>
+                        <li>الرغبة الرابعة: {}</li>
+                        <li>الرغبة الخامسة: {}</li>
+                        <li>الرغبة السادسة: {}</li>
+                        <li>الرغبة السابعة: {}</li>
+                    </ol>
+                </div>
+                <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 10px;">
+                    تم استخراج هذا المستند إلكترونياً من منصة الكنترول الرسمية ويعتبر مستنداً رسمياً للتسجيل.
+                </div>
+            </div>
+            """.format(
+                selected_name, 
+                nat_id, 
+                phone, 
+                student_data['المجموع'], 
+                student_data['النسبة'], 
+                student_data['التقدير'],
+                r1 if 'r1' in locals() else saved_record.get('رغبة 1'),
+                r2 if 'r2' in locals() else saved_record.get('رغبة 2'),
+                r3 if 'r3' in locals() else saved_record.get('رغبة 3'),
+                r4 if 'r4' in locals() else saved_record.get('رغبة 4'),
+                r5 if 'r5' in locals() else saved_record.get('رغبة 5'),
+                r6 if 'r6' in locals() else saved_record.get('رغبة 6'),
+                r7 if 'r7' in locals() else saved_record.get('رغبة 7')
+            ), unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # زر الطباعة والحفظ بصيغة PDF مع التعليمات الواضحة
+            st.markdown("""
+                <div style="text-align: center; background: #f1f8e9; border: 1px solid #81c784; padding: 15px; border-radius: 10px;" class="no-print">
+                    <button onclick="window.print()" style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 12px 25px; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.15); width: 100%;">
+                        🖨️ طباعة أو حفظ الإيصال (PDF)
+                    </button>
+                    <p style="margin-top: 10px; color: #2e7d32; font-weight: 700; font-size: 15px;">
+                        📌 احفظ رغباتك ملف pdf كمستند رسمي لك
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
     else:
         st.warning("🔒 يرجى إدخال الرقم القومي المكون من 14 رقماً ورقم الهاتف (واتساب) بشكل صحيح لفتح خانات ترتيب الرغبات.")
