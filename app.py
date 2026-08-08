@@ -21,8 +21,8 @@ st.write("---")
 def load_data():
     try:
         # قراءة الملف واستبعاد أي صفوف فارغة في عمود الاسم
-        df = pd.read_excel("جماعية.xlsx")
-        df = df.dropna(subset=['الاسم'])
+df = pd.read_excel("data.xlsx")
+df = df.dropna(subset=['الاسم'])
         return df
     except FileNotFoundError:
         return None
