@@ -3,52 +3,52 @@ import pandas as pd
 from datetime import date
 import os
 
-# 1. إعدادات الصفحة والتصميم الفاخر
+# 1. إعدادات الصفحة
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية", layout="centered", page_icon="🎓")
 
-# تنسيقات CSS المتقدمة للإبهار البصري، ضبط اتجاه الكتابة، وتوسيع الخطوط وتلوينها
+# تنسيقات CSS المتقدمة لضبط اليمين لليسار والإبهار البصري
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
     
     html, body, [class*="css"] {
         font-family: 'Cairo', sans-serif;
-        direction: RTL;
-        text-align: right;
+        direction: RTL !important;
+        text-align: right !important;
     }
     
     /* تنسيق العنوان الرئيسي */
     .main-title {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         color: white;
-        padding: 25px;
+        padding: 20px;
         border-radius: 15px;
         text-align: center;
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
     
     .main-title h1 {
-        font-size: 28px;
+        font-size: 26px;
         font-weight: 900;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         color: #ffffff;
     }
     
     .main-title p {
-        font-size: 16px;
+        font-size: 15px;
         color: #e0e0e0;
         margin: 0;
     }
 
-    /* صندوق التعليمات المتميز */
+    /* صندوق التعليمات */
     .instructions-box {
         background-color: #f8f9fa;
         border-right: 6px solid #1e3c72;
         border-radius: 10px;
-        padding: 20px;
+        padding: 15px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
     
     .instructions-box h3 {
@@ -57,25 +57,34 @@ st.markdown("""
         margin-top: 0;
     }
     
-    .instructions-box ul {
-        padding-right: 20px;
-    }
-    
     .instructions-box li {
-        font-size: 15px;
+        font-size: 14px;
         color: #333;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
         font-weight: 600;
     }
 
-    /* تنسيق الحقول والقوائم */
-    .stSelectbox label, .stTextInput label {
-        font-weight: 700 !important;
-        color: #2c3e50 !important;
-        font-size: 16px !important;
+    /* تمييز الرغبة الأولى بشكل مبهج وكبير */
+    .first-choice-container {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+        border: 2px dashed #ffc107;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 15px;
     }
     
-    /* زر الحفظ البارز */
+    .first-choice-container label {
+        font-size: 20px !important;
+        font-weight: 900 !important;
+        color: #856404 !important;
+    }
+
+    /* اتجاه عناصر القوائم المنسدلة والحقول */
+    .stSelectbox, .stTextInput {
+        text-align: right !important;
+    }
+    
+    /* زر الحفظ */
     .stButton>button {
         width: 100%;
         background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
@@ -96,7 +105,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. بوابة دخول الإدارة (مخفية في القائمة الجانبية)
+# 2. بوابة دخول الإدارة في القائمة الجانبية
 st.sidebar.title("👨‍💻 لوحة الكنترول والإدارة")
 admin_pass = st.sidebar.text_input("أدخل كلمة المرور:", type="password")
 
@@ -120,14 +129,12 @@ if admin_pass == "2027":
         st.warning("لم يقم أي طالب بالتسجيل حتى الآن.")
     st.stop()
 
-# 3. عرض الشعارات الأكاديمية والعنوان الرئيسي
+# 3. عرض الشعارات الأكاديمية والعنوان الرئيسي بشكل متناسق
 col_logo1, col_title, col_logo2 = st.columns([1, 4, 1])
 
 with col_logo1:
-    try:
+    if os.path.exists("fac_logo.png"):
         st.image("fac_logo.png", use_column_width=True)
-    except:
-        pass
 
 with col_title:
     st.markdown("""
@@ -138,10 +145,8 @@ with col_title:
     """, unsafe_allow_html=True)
 
 with col_logo2:
-    try:
+    if os.path.exists("uni_logo.png"):
         st.image("uni_logo.png", use_column_width=True)
-    except:
-        pass
 
 # 4. صندوق التعليمات الفاخر
 st.markdown("""
@@ -149,15 +154,15 @@ st.markdown("""
     <h3>📌 تعليمات هامة للتسجيل:</h3>
     <ul>
         <li><b>استدعاء البيانات:</b> ابدأ بكتابة أول حرفين من اسمك في خانة البحث أدناه، وقم باختياره لتظهر درجاتك المعتمدة.</li>
-        <li><b>البيانات الشخصية:</b> يُشترط إدخال (القم القومي 14 رقماً)، و(رقم الواتساب) بشكل صحيح.</li>
-        <li><b>ترتيب الرغبات:</b> يجب ترتيب <b>جميع التخصصات السبعة</b> المتاحة (كرة القدم، كرة اليد، الكرة الطائرة، كرة السلة، الهوكي، التنس الأرضي، اسكواش) دون تكرار.</li>
+        <li><b>البيانات الشخصية:</b> يُشترط إدخال (الرقم القومي 14 رقماً)، و(رقم الواتساب) بشكل صحيح.</li>
+        <li><b>ترتيب الرغبات:</b> يجب ترتيب <b>جميع التخصصات السبعة</b> دون تكرار (كل تخصص يتم اختياره يختفي تلقائياً من الخيارات التالية).</li>
         <li><b>مواعيد التسجيل:</b> ⏳ يفتح باب التسجيل من يوم <b>الأحد 9-8-2026</b> ويُغلق آلياً يوم <b>السبت 22-8-2026</b>.</li>
         <li><b>التخلف عن التسجيل:</b> ⚠️ الطالب الذي لا يسجل رغباته خلال هذه الفترة، سيتم توزيعه آلياً وفقاً للأماكن الشاغرة.</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
 
-# 5. التوقيت الزمني للمنصة (مضبوط مؤقتاً لليوم ليفتح معك فوراً للتجربة)
+# 5. التوقيت الزمني للمنصة
 start_date = date(2026, 8, 8) 
 end_date = date(2026, 8, 22)
 today = date.today()
@@ -205,44 +210,55 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
         
     st.markdown("---")
     
-    # 8. استكمال التسجيل
-    st.markdown("### 📱 استكمال البيانات الشخصية وترتيب الرغبات (7 رغبات)")
+    # 8. استكمال البيانات الشخصية
+    st.markdown("### 📱 استكمال البيانات الشخصية وترتيب الرغبات")
     nat_id = st.text_input("الرقم القومي (14 رقماً):", max_chars=14, placeholder="أدخل الرقم القومي المدون ببطاقة الرقم القومي")
     phone = st.text_input("رقم الهاتف (واتساب):", max_chars=11, placeholder="01xxxxxxxx0")
     
-    # التخصصات السبعة
-    options = ["كرة القدم", "كرة اليد", "الكرة الطائرة", "كرة السلة", "الهوكي", "التنس الأرضي", "اسكواش"]
+    # التخصصات الأساسية
+    all_options = ["كرة القدم", "كرة اليد", "الكرة الطائرة", "كرة السلة", "الهوكي", "التنس الأرضي", "اسكواش"]
     
     st.markdown("---")
-    st.markdown("#### 🎯 حدد رغباتك بترتيب الأولوية من الأولى إلى السابعة:")
+    st.markdown("#### 🎯 حدد رغباتك بترتيب الأولوية (من الأولى إلى السابعة):")
     
-    c1, c2 = st.columns(2)
-    with c1:
-        r1 = st.selectbox("الرغبة الأولى:", ["اختر التخصص..."] + options)
-        r2 = st.selectbox("الرغبة الثانية:", ["اختر التخصص..."] + options)
-        r3 = st.selectbox("الرغبة الثالثة:", ["اختر التخصص..."] + options)
-        r4 = st.selectbox("الرغبة الرابعة:", ["اختر التخصص..."] + options)
-    with c2:
-        r5 = st.selectbox("الرغبة الخامسة:", ["اختر التخصص..."] + options)
-        r6 = st.selectbox("الرغبة السادسة:", ["اختر التخصص..."] + options)
-        r7 = st.selectbox("الرغبة السابعة:", ["اختر التخصص..."] + options)
+    # نظام ديناميكي لمنع تكرار الرغبات وتكبير الرغبة الأولى
+    st.markdown('<div class="first-choice-container">', unsafe_allow_html=True)
+    r1 = st.selectbox("⭐ الرغبة الأولى (الأساسية):", ["اختر التخصص..."] + all_options)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # تصفية الخيارات المتبقية للرغبات التالية
+    opts_after_r1 = [opt for opt in all_options if opt != r1]
+    r2 = st.selectbox("الرغبة الثانية:", ["اختر التخصص..."] + opts_after_r1)
+    
+    opts_after_r2 = [opt for opt in opts_after_r1 if opt != r2]
+    r3 = st.selectbox("الرغبة الثالثة:", ["اختر التخصص..."] + opts_after_r2)
+    
+    opts_after_r3 = [opt for opt in opts_after_r2 if opt != r3]
+    r4 = st.selectbox("الرغبة الرابعة:", ["اختر التخصص..."] + opts_after_r3)
+    
+    opts_after_r4 = [opt for opt in opts_after_r3 if opt != r4]
+    r5 = st.selectbox("الرغبة الخامسة:", ["اختر التخصص..."] + opts_after_r4)
+    
+    opts_after_r5 = [opt for opt in opts_after_r4 if opt != r5]
+    r6 = st.selectbox("الرغبة السادسة:", ["اختر التخصص..."] + opts_after_r5)
+    
+    opts_after_r6 = [opt for opt in opts_after_r5 if opt != r6]
+    r7 = st.selectbox("الرغبة السابعة:", ["اختر التخصص..."] + opts_after_r6)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
     if st.button("💾 حفظ وتأكيد الرغبات نهائياً"):
         selections = [r1, r2, r3, r4, r5, r6, r7]
         
-        # الفلترة والتحقق
         if "اختر التخصص..." in selections:
             st.error("⚠️ يرجى استكمال ترتيب جميع الرغبات السبعة قبل الحفظ.")
         elif len(set(selections)) < 7:
-            st.error("⚠️ لا يمكن تكرار نفس التخصص في رغبتين مختلفتين. يرجى اختيار تخصص فريد لكل رغبة.")
+            st.error("⚠️ لا يمكن تكرار نفس التخصص في رغبتين مختلفتين.")
         elif not nat_id or len(nat_id) < 14:
             st.error("⚠️ يرجى إدخال الرقم القومي المكون من 14 رقماً بشكل صحيح.")
         elif not phone or len(phone) < 10:
             st.error("⚠️ يرجى إدخال رقم هاتف صحيح ومكتمل.")
         else:
-            # 9. حفظ البيانات للكنترول
             new_data = pd.DataFrame({
                 "الاسم": [selected_name],
                 "الرقم القومي": [nat_id],
