@@ -6,7 +6,7 @@ import os
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية", layout="centered", page_icon="🎓")
 
-# تنسيقات CSS لضبط العنوان (توسيط ونمط موحد كبير)، ونصوص المنصة (يمين)، والزر الأحمر القاني
+# تنسيقات CSS المتقدمة لضبط العنوان، النصوص، والزر الأحمر القاني
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
@@ -162,10 +162,10 @@ st.markdown("""
 <div class="instructions-box">
     <h3>📌 تعليمات هامة للتسجيل:</h3>
     <ul>
-        <li><b>استدعاء البيانات:</b> ابدأ بكتابة أول حرفين من اسمك في خانة البحث أدناه، وقم باختياره لتظهر درجاتك المعتمدة.</li>
-        <li><b>البيانات الشخصية:</b> يُشترط إدخال (الرقم القومي 14 رقماً)، و(رقم الواتساب) بنفسك.</li>
+        <li><b>استدعاء البيانات:</b> ابدأ بكتابة أول حرفين من اسمك في خانة البحث، وقم باختياره لتظهر درجاتك المعتمدة.</li>
+        <li><b>الخطوة البينية الأمنية:</b> أدخل (الرقم القومي 14 رقماً) و(رقم الواتساب) واضغط على زر التحقق لفتح صفحة رغباتك.</li>
         <li><b>ترتيب الرغبات:</b> يجب ترتيب <b>جميع التخصصات السبعة</b> دون تكرار (كل تخصص يتم اختياره يختفي تلقائياً من الخيارات التالية).</li>
-        <li><b>مواعيد وقابلية التعديل:</b> ⏳ يفتح باب التسجيل والتعديل من يوم <b>الأحد 9-8-2026</b> حتى يوم <b>السبت 22-8-2026</b> (يمكنك تعديل رغباتك في أي وقت خلال هذه الفترة).</li>
+        <li><b>مواعيد وقابلية التعديل:</b> ⏳ يفتح باب التسجيل والتعديل من يوم <b>الأحد 9-8-2026</b> حتى يوم <b>السبت 22-8-2026</b>.</li>
         <li><b>التخلف عن التسجيل:</b> ⚠️ الطالب الذي لا يسجل رغباته خلال هذه الفترة، سيتم توزيعه آلياً وفقاً للأماكن الشاغرة.</li>
     </ul>
 </div>
@@ -207,24 +207,17 @@ selected_name = st.selectbox("🔍 ابحث عن اسمك (اكتب أول حر�
 if selected_name and selected_name != "اختر اسم الطالب من هنا...":
     student_data = df[df['الاسم'] == selected_name].iloc[0]
     
-    # فحص ما إذا كان الطالب قد سجل مسبقاً لاسترجاع بياناته ورغباته القديمة للتعديل
-    prev_nat_id = ""
-    prev_phone = ""
-    saved_choices = {}
-    
+    # التحقق من وجود تسجيل سابق لاسترجاع البيانات
+    saved_record = None
     if os.path.exists("student_requests.csv"):
         df_reqs = pd.read_csv("student_requests.csv")
-        student_record = df_reqs[df_reqs['الاسم'] == selected_name]
-        if not student_record.empty:
-            prev_nat_id = str(student_record.iloc[0]['الرقم القومي'])
-            prev_phone = str(student_record.iloc[0]['رقم الهاتف'])
-            for i in range(1, 8):
-                saved_choices[f'رغبة {i}'] = student_record.iloc[0][f'رغبة {i}']
-            st.info("💡 لقد قمت بتسجيل رغباتك مسبقاً. يمكنك تعديلها وإعادة الحفظ خلال فترة التسجيل المفتوحة.")
+        match = df_reqs[df_reqs['الاسم'] == selected_name]
+        if not match.empty:
+            saved_record = match.iloc[0]
 
     st.success(f"✅ أهلاً بك يا {selected_name}.. تم العثور على بياناتك بنجاح!")
     
-    # تنسيق عرض الدرجات (مغلقة)
+    # عرض الدرجات (مغلقة)
     colA, colB, colC = st.columns(3)
     with colA:
         st.text_input("المجموع الكلي", value=str(student_data['المجموع']), disabled=True)
@@ -235,106 +228,94 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
         
     st.markdown("---")
     
-    # 8. استكمال البيانات الشخصية
-    st.markdown("### 📱 استكمال البيانات الشخصية وترتيب الرغبات")
-    nat_id = st.text_input("الرقم القومي (14 رقماً):", value=prev_nat_id, max_chars=14, placeholder="أدخل الرقم القومي المدون ببطاقة الرقم القومي")
-    phone = st.text_input("رقم الهاتف (واتساب):", value=prev_phone, max_chars=11, placeholder="01xxxxxxxx0")
+    # الخطوة البينية: إدخال الرقم القومي ورقم الهاتف أولاً لفتح الرغبات
+    st.markdown("### 📱 الخطوة الأمنية: إدخال بيانات التوثيق")
     
-    # التخصصات الأساسية
-    all_options = ["كرة القدم", "كرة اليد", "الكرة الطائرة", "كرة السلة", "الهوكي", "التنس الأرضي", "اسكواش"]
+    default_id = str(saved_record['الرقم القومي']) if saved_record is not None else ""
+    default_phone = str(saved_record['رقم الهاتف']) if saved_record is not None else ""
     
-    st.markdown("---")
-    st.markdown("#### 🎯 حدد رغباتك بترتيب الأولوية (من الأولى إلى السابعة):")
+    nat_id = st.text_input("الرقم القومي (14 رقماً):", value=default_id, max_chars=14, placeholder="أدخل الرقم القومي المدون ببطاقة الرقم القومي")
+    phone = st.text_input("رقم الهاتف (واتساب):", value=default_phone, max_chars=11, placeholder="01xxxxxxxx0")
     
-    # دالة مساعدة لتحديد الفهرس الافتراضي للقائمة المنسدلة في حالة التعديل
-    def get_index(saved_val, options_list):
-        if saved_val in options_list:
-            return options_list.index(saved_val) + 1
-        return 0
-
-    # الرغبة الأولى المميزة
-    st.markdown('<div class="first-choice-container">', unsafe_allow_html=True)
-    default_r1 = saved_choices.get('رغبة 1', "اختر التخصص...")
-    r1_options = ["اختر التخصص..."] + all_options
-    r1_idx = get_index(default_r1, all_options)
-    r1 = st.selectbox("⭐ الرغبة الأولى (الأساسية):", r1_options, index=r1_idx)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # الرغبة الثانية
-    opts_after_r1 = [opt for opt in all_options if opt != r1]
-    default_r2 = saved_choices.get('رغبة 2', "اختر التخصص...")
-    r2_options = ["اختر التخصص..."] + opts_after_r1
-    r2_idx = get_index(default_r2, opts_after_r1)
-    r2 = st.selectbox("الرغبة الثانية:", r2_options, index=r2_idx)
-    
-    # الرغبة الثالثة
-    opts_after_r2 = [opt for opt in opts_after_r1 if opt != r2]
-    default_r3 = saved_choices.get('رغبة 3', "اختر التخصص...")
-    r3_options = ["اختر التخصص..."] + opts_after_r2
-    r3_idx = get_index(default_r3, opts_after_r2)
-    r3 = st.selectbox("الرغبة الثالثة:", r3_options, index=r3_idx)
-    
-    # الرغبة الرابعة
-    opts_after_r3 = [opt for opt in opts_after_r2 if opt != r3]
-    default_r4 = saved_choices.get('رغبة 4', "اختر التخصص...")
-    r4_options = ["اختر التخصص..."] + opts_after_r3
-    r4_idx = get_index(default_r4, opts_after_r3)
-    r4 = st.selectbox("الرغبة الرابعة:", r4_options, index=r4_idx)
-    
-    # الرغبة الخامسة
-    opts_after_r4 = [opt for opt in opts_after_r3 if opt != r4]
-    default_r5 = saved_choices.get('رغبة 5', "اختر التخصص...")
-    r5_options = ["اختر التخصص..."] + opts_after_r4
-    r5_idx = get_index(default_r5, opts_after_r4)
-    r5 = st.selectbox("الرغبة الخامسة:", r5_options, index=r5_idx)
-    
-    # الرغبة السادسة
-    opts_after_r5 = [opt for opt in opts_after_r4 if opt != r5]
-    default_r6 = saved_choices.get('رغبة 6', "اختر التخصص...")
-    r6_options = ["اختر التخصص..."] + opts_after_r5
-    r6_idx = get_index(default_r6, opts_after_r5)
-    r6 = st.selectbox("الرغبة السادسة:", r6_options, index=r6_idx)
-    
-    # الرغبة السابعة
-    opts_after_r6 = [opt for opt in opts_after_r5 if opt != r6]
-    default_r7 = saved_choices.get('رغبة 7', "اختر التخصص...")
-    r7_options = ["اختر التخصص..."] + opts_after_r6
-    r7_idx = get_index(default_r7, opts_after_r6)
-    r7 = st.selectbox("الرغبة السابعة:", r7_options, index=r7_idx)
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    if st.button("💾 حفظ وتأكيد الرغبات نهائياً"):
-        selections = [r1, r2, r3, r4, r5, r6, r7]
-        
-        if "اختر التخصص..." in selections:
-            st.error("⚠️ يرجى استكمال ترتيب جميع الرغبات السبعة قبل الحفظ.")
-        elif len(set(selections)) < 7:
-            st.error("⚠️ لا يمكن تكرار نفس التخصص في رغبتين مختلفتين.")
-        elif not nat_id or len(nat_id) < 14:
-            st.error("⚠️ يرجى إدخال الرقم القومي المكون من 14 رقماً بشكل صحيح.")
-        elif not phone or len(phone) < 10:
-            st.error("⚠️ يرجى إدخال رقم هاتف صحيح ومكتمل.")
+    # زر أو شرط لفتح الرغبات
+    if len(nat_id) == 14 and len(phone) >= 10:
+        if saved_record is not None:
+            st.info("💡 تم العثور على رغباتك المسجلة مسبقاً. يمكنك تعديلها وإعادة الحفظ أدناه.")
         else:
-            new_data = pd.DataFrame({
-                "الاسم": [selected_name],
-                "الرقم القومي": [nat_id],
-                "رقم الهاتف": [phone],
-                "المجموع": [student_data['المجموع']],
-                "النسبة": [student_data['النسبة']],
-                "التقدير": [student_data['التقدير']],
-                "رغبة 1": [r1], "رغبة 2": [r2], "رغبة 3": [r3],
-                "رغبة 4": [r4], "رغبة 5": [r5], "رغبة 6": [r6], "رغبة 7": [r7]
-            })
+            st.success("🔓 تم التحقق من البيانات بنجاح! تم فتح خانات ترتيب الرغبات أدناه:")
             
-            if os.path.exists("student_requests.csv"):
-                df_requests = pd.read_csv("student_requests.csv")
-                df_requests = df_requests[df_requests['الاسم'] != selected_name]
-                df_requests = pd.concat([df_requests, new_data], ignore_index=True)
+        st.markdown("---")
+        st.markdown("#### 🎯 حدد رغباتك بترتيب الأولوية (من الأولى إلى السابعة):")
+        
+        all_options = ["كرة القدم", "كرة اليد", "الكرة الطائرة", "كرة السلة", "الهوكي", "التنس الأرضي", "اسكواش"]
+        
+        def get_saved_choice(idx):
+            if saved_record is not None:
+                return saved_record.get(f'رغبة {idx}', "اختر التخصص...")
+            return "اختر التخصص..."
+
+        def get_index(val, opts):
+            if val in opts:
+                return opts.index(val) + 1
+            return 0
+
+        # الرغبة الأولى المميزة
+        st.markdown('<div class="first-choice-container">', unsafe_allow_html=True)
+        r1_opts = ["اختر التخصص..."] + all_options
+        r1_val = get_saved_choice(1)
+        r1 = st.selectbox("⭐ الرغبة الأولى (الأساسية):", r1_opts, index=get_index(r1_val, all_options))
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # الرغبات الباقية مع منع التكرار الديناميكي
+        opts_after_r1 = [opt for opt in all_options if opt != r1]
+        r2 = st.selectbox("الرغبة الثانية:", ["اختر التخصص..."] + opts_after_r1, index=get_index(get_saved_choice(2), opts_after_r1))
+        
+        opts_after_r2 = [opt for opt in opts_after_r1 if opt != r2]
+        r3 = st.selectbox("الرغبة الثالثة:", ["اختر التخصص..."] + opts_after_r2, index=get_index(get_saved_choice(3), opts_after_r2))
+        
+        opts_after_r3 = [opt for opt in opts_after_r2 if opt != r3]
+        r4 = st.selectbox("الرغبة الرابعة:", ["اختر التخصص..."] + opts_after_r3, index=get_index(get_saved_choice(4), opts_after_r3))
+        
+        opts_after_r4 = [opt for opt in opts_after_r3 if opt != r4]
+        r5 = st.selectbox("الرغبة الخامسة:", ["اختر التخصص..."] + opts_after_r4, index=get_index(get_saved_choice(5), opts_after_r4))
+        
+        opts_after_r5 = [opt for opt in opts_after_r4 if opt != r5]
+        r6 = st.selectbox("الرغبة السادسة:", ["اختر التخصص..."] + opts_after_r5, index=get_index(get_saved_choice(6), opts_after_r5))
+        
+        opts_after_r6 = [opt for opt in opts_after_r5 if opt != r6]
+        r7 = st.selectbox("الرغبة السابعة:", ["اختر التخصص..."] + opts_after_r6, index=get_index(get_saved_choice(7), opts_after_r6))
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        if st.button("💾 حفظ وتأكيد الرغبات نهائياً"):
+            selections = [r1, r2, r3, r4, r5, r6, r7]
+            
+            if "اختر التخصص..." in selections:
+                st.error("⚠️ يرجى استكمال ترتيب جميع الرغبات السبعة قبل الحفظ.")
+            elif len(set(selections)) < 7:
+                st.error("⚠️ لا يمكن تكرار نفس التخصص في رغبتين مختلفتين.")
             else:
-                df_requests = new_data
+                new_data = pd.DataFrame({
+                    "الاسم": [selected_name],
+                    "الرقم القومي": [nat_id],
+                    "رقم الهاتف": [phone],
+                    "المجموع": [student_data['المجموع']],
+                    "النسبة": [student_data['النسبة']],
+                    "التقدير": [student_data['التقدير']],
+                    "رغبة 1": [r1], "رغبة 2": [r2], "رغبة 3": [r3],
+                    "رغبة 4": [r4], "رغبة 5": [r5], "رغبة 6": [r6], "رغبة 7": [r7]
+                })
                 
-            df_requests.to_csv("student_requests.csv", index=False)
-            
-            st.balloons()
-            st.success(f"🎉 مبروك يا {selected_name}! تم حفظ/تحديث رغباتك السبعة بنجاح في قاعدة البيانات الرسمية.")
+                if os.path.exists("student_requests.csv"):
+                    df_requests = pd.read_csv("student_requests.csv")
+                    df_requests = df_requests[df_requests['الاسم'] != selected_name]
+                    df_requests = pd.concat([df_requests, new_data], ignore_index=True)
+                else:
+                    df_requests = new_data
+                    
+                df_requests.to_csv("student_requests.csv", index=False)
+                
+                st.balloons()
+                st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
+    else:
+        st.warning("🔒 يرجى إدخال الرقم القومي المكون من 14 رقماً ورقم الهاتف (واتساب) بشكل صحيح لفتح خانات ترتيب الرغبات.")
