@@ -6,7 +6,7 @@ import os
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية", layout="centered", page_icon="🎓")
 
-# تنسيقات CSS المتقدمة + تنسيق خاص للطباعة وحفظ PDF (إخفاء العناصر الزائدة وإبراز الإيصال)
+# تنسيقات CSS المتقدمة لضبط العنوان، النصوص، والزر الأحمر القاني
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
@@ -65,23 +65,6 @@ st.markdown("""
         color: #333;
         margin-bottom: 8px;
         font-weight: 600;
-        text-align: right !important;
-    }
-
-    /* تمييز الرغبة الأولى بشكل مبهج وكبير */
-    .first-choice-container {
-        background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
-        border: 2px dashed #ffc107;
-        padding: 15px;
-        border-radius: 12px;
-        margin-bottom: 15px;
-        direction: RTL !important;
-    }
-    
-    .first-choice-container label {
-        font-size: 20px !important;
-        font-weight: 900 !important;
-        color: #856404 !important;
         text-align: right !important;
     }
 
@@ -183,8 +166,8 @@ st.markdown("""
 <div class="instructions-box">
     <h3>📌 تعليمات هامة للتسجيل:</h3>
     <ul>
-        <li><b>استدعاء البيانات:</b> ابدأ بكتابة أول حرفين من اسمك في خانة البحث أدناه، وقم باختياره لتظهر درجاتك المعتمدة.</li>
-        <li><b>الخطوة البينية الأمنية:</b> أدخل (الرقم القومي 14 رقماً) و(رقم الواتساب) واضغط على زر التحقق لفتح صفحة رغباتك.</li>
+        <li><b>استدعاء البيانات:</b> ابدأ بكتابة أول حرفين من اسمك في خانة البحث أدناه، وقم باختياره لتظهر درجاتك ومقررك المعتمد.</li>
+        <li><b>الخطوة البينية الأمنية:</b> أدخل (الرقم القومي 14 رقماً) و(رقم الواتساب) واضغط للتحقق وفتح صفحة رغباتك.</li>
         <li><b>ترتيب الرغبات:</b> يجب ترتيب <b>جميع التخصصات السبعة</b> دون تكرار (كل تخصص يتم اختياره يختفي تلقائياً من الخيارات التالية).</li>
         <li><b>مواعيد وقابلية التعديل:</b> ⏳ يفتح باب التسجيل والتعديل من يوم <b>الأحد 9-8-2026</b> حتى يوم <b>السبت 22-8-2026</b>.</li>
         <li><b>طباعة الإيصال:</b> 🖨️ بعد حفظ رغباتك، سيظهر لك زر الطباعة فوراً لحفظ رغباتك كملف PDF كمستند رسمي.</li>
@@ -222,11 +205,19 @@ if df is None:
 
 student_names = df['الاسم'].astype(str).tolist()
 
+# استخراج اسم القسم أو الشعبة تلقائياً إن وجد في ملف الإكسيل
+def get_dept(row):
+    for col in ['القسم', 'شعبة', 'التخصص', 'البرنامج']:
+        if col in row.index and pd.notna(row[col]):
+            return str(row[col])
+    return "غير محدد"
+
 # 7. البحث الذكي المنسدل
 selected_name = st.selectbox("🔍 ابحث عن اسمك (اكتب أول حرفين من اسمك للبحث):", ["اختر اسم الطالب من هنا..."] + student_names)
 
 if selected_name and selected_name != "اختر اسم الطالب من هنا...":
     student_data = df[df['الاسم'] == selected_name].iloc[0]
+    dept_name = get_dept(student_data)
     
     # التحقق من وجود تسجيل سابق لاسترجاع البيانات
     saved_record = None
@@ -238,14 +229,16 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
 
     st.success(f"✅ أهلاً بك يا {selected_name}.. تم العثور على بياناتك بنجاح!")
     
-    # عرض الدرجات (مغلقة)
-    colA, colB, colC = st.columns(3)
+    # عرض الدرجات والقسم (مغلقة)
+    colA, colB, colC, colD = st.columns(4)
     with colA:
         st.text_input("المجموع الكلي", value=str(student_data['المجموع']), disabled=True)
     with colB:
         st.text_input("النسبة المئوية (%)", value=str(student_data['النسبة']), disabled=True)
     with colC:
         st.text_input("التقدير الأكاديمي", value=str(student_data['التقدير']), disabled=True)
+    with colD:
+        st.text_input("القسم / الشعبة", value=dept_name, disabled=True)
         
     st.markdown("---")
     
@@ -280,12 +273,10 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 return opts.index(val) + 1
             return 0
 
-        # الرغبة الأولى المميزة
-        st.markdown('<div class="first-choice-container">', unsafe_allow_html=True)
+        # الرغبة الأولى (بتنسيق طبيعي موحد)
         r1_opts = ["اختر التخصص..."] + all_options
         r1_val = get_saved_choice(1)
         r1 = st.selectbox("⭐ الرغبة الأولى (الأساسية):", r1_opts, index=get_index(r1_val, all_options))
-        st.markdown('</div>', unsafe_allow_html=True)
         
         # الرغبات الباقية مع منع التكرار الديناميكي
         opts_after_r1 = [opt for opt in all_options if opt != r1]
@@ -323,6 +314,7 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                     "المجموع": [student_data['المجموع']],
                     "النسبة": [student_data['النسبة']],
                     "التقدير": [student_data['التقدير']],
+                    "القسم": [dept_name],
                     "رغبة 1": [r1], "رغبة 2": [r2], "رغبة 3": [r3],
                     "رغبة 4": [r4], "رغبة 5": [r5], "رغبة 6": [r6], "رغبة 7": [r7]
                 })
@@ -340,7 +332,7 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 st.balloons()
                 st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
 
-        # عرض زر وطباعة الإيصال الرسمي (يظهر بعد الحفظ أو إذا كان لديه تسجيل مسبق محفوظ)
+        # عرض الإيصال الرسمي وزر الطباعة النشط
         if saved_record is not None or st.session_state.get('just_saved', False):
             st.markdown("---")
             st.markdown("""
@@ -353,11 +345,12 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                     <p><b>اسم الطالب:</b> {}</p>
                     <p><b>الرقم القومي:</b> {}</p>
                     <p><b>رقم الواتساب:</b> {}</p>
+                    <p><b>القسم / الشعبة:</b> {}</p>
                     <p><b>المجموع الكلي:</b> {} | <b>النسبة المئوية:</b> {}% | <b>التقدير:</b> {}</p>
                     <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
                     <h4 style="color: #1e3c72; margin-bottom: 10px;">ترتيب الرغبات المعتمد:</h4>
                     <ol style="padding-right: 20px; font-weight: bold;">
-                        <li style="color: #b71c1c; font-size: 17px;">الرغبة الأولى: {}</li>
+                        <li>الرغبة الأولى: {}</li>
                         <li>الرغبة الثانية: {}</li>
                         <li>الرغبة الثالثة: {}</li>
                         <li>الرغبة الرابعة: {}</li>
@@ -374,24 +367,25 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 selected_name, 
                 nat_id, 
                 phone, 
+                dept_name,
                 student_data['المجموع'], 
                 student_data['النسبة'], 
                 student_data['التقدير'],
-                r1 if 'r1' in locals() else saved_record.get('رغبة 1'),
-                r2 if 'r2' in locals() else saved_record.get('رغبة 2'),
-                r3 if 'r3' in locals() else saved_record.get('رغبة 3'),
-                r4 if 'r4' in locals() else saved_record.get('رغبة 4'),
-                r5 if 'r5' in locals() else saved_record.get('رغبة 5'),
-                r6 if 'r6' in locals() else saved_record.get('رغبة 6'),
-                r7 if 'r7' in locals() else saved_record.get('رغبة 7')
+                r1 if 'r1' in locals() else (saved_record.get('رغبة 1') if saved_record is not None else ""),
+                r2 if 'r2' in locals() else (saved_record.get('رغبة 2') if saved_record is not None else ""),
+                r3 if 'r3' in locals() else (saved_record.get('رغبة 3') if saved_record is not None else ""),
+                r4 if 'r4' in locals() else (saved_record.get('رغبة 4') if saved_record is not None else ""),
+                r5 if 'r5' in locals() else (saved_record.get('رغبة 5') if saved_record is not None else ""),
+                r6 if 'r6' in locals() else (saved_record.get('رغبة 6') if saved_record is not None else ""),
+                r7 if 'r7' in locals() else (saved_record.get('رغبة 7') if saved_record is not None else "")
             ), unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # زر الطباعة والحفظ بصيغة PDF مع التعليمات الواضحة
+            # زر الطباعة والحفظ بصيغة PDF الفعال والنشط
             st.markdown("""
                 <div style="text-align: center; background: #f1f8e9; border: 1px solid #81c784; padding: 15px; border-radius: 10px;" class="no-print">
-                    <button onclick="window.print()" style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 12px 25px; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.15); width: 100%;">
+                    <button onclick="window.print(); return false;" style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 12px 25px; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.15); width: 100%;">
                         🖨️ طباعة أو حفظ الإيصال (PDF)
                     </button>
                     <p style="margin-top: 10px; color: #2e7d32; font-weight: 700; font-size: 15px;">
