@@ -6,7 +6,7 @@ import os
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية", layout="centered", page_icon="🎓")
 
-# تنسيقات CSS المتقدمة لضبط اليمين لليسار والإبهار البصري
+# تنسيقات CSS لضبط اتجاه الكتابة والإبهار البصري
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
@@ -79,7 +79,6 @@ st.markdown("""
         color: #856404 !important;
     }
 
-    /* اتجاه عناصر القوائم المنسدلة والحقول */
     .stSelectbox, .stTextInput {
         text-align: right !important;
     }
@@ -129,12 +128,12 @@ if admin_pass == "2027":
         st.warning("لم يقم أي طالب بالتسجيل حتى الآن.")
     st.stop()
 
-# 3. عرض الشعارات الأكاديمية والعنوان الرئيسي بشكل متناسق
+# 3. عرض الشعارات الأكاديمية والعنوان الرئيسي
 col_logo1, col_title, col_logo2 = st.columns([1, 4, 1])
 
 with col_logo1:
     if os.path.exists("fac_logo.png"):
-        st.image("fac_logo.png", use_column_width=True)
+        st.image("fac_logo.png", use_container_width=True)
 
 with col_title:
     st.markdown("""
@@ -146,7 +145,7 @@ with col_title:
 
 with col_logo2:
     if os.path.exists("uni_logo.png"):
-        st.image("uni_logo.png", use_column_width=True)
+        st.image("uni_logo.png", use_container_width=True)
 
 # 4. صندوق التعليمات الفاخر
 st.markdown("""
@@ -226,7 +225,6 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
     r1 = st.selectbox("⭐ الرغبة الأولى (الأساسية):", ["اختر التخصص..."] + all_options)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # تصفية الخيارات المتبقية للرغبات التالية
     opts_after_r1 = [opt for opt in all_options if opt != r1]
     r2 = st.selectbox("الرغبة الثانية:", ["اختر التخصص..."] + opts_after_r1)
     
