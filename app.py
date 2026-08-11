@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit.components.v1 as components
 from datetime import date
 import os
+import io
 
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية وألعاب المضرب", layout="centered", page_icon="🎓")
@@ -16,7 +17,6 @@ st.markdown("""
         font-family: 'Cairo', sans-serif;
     }
     
-    /* تنسيق العنوان الرئيسي */
     .main-title {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         color: white;
@@ -36,13 +36,11 @@ st.markdown("""
         text-align: center !important;
     }
 
-    /* اتجاه وباقي نصوص المنصة ناحية اليمين */
     .stMarkdown, p, li, label, .stTextInput, .stSelectbox {
         direction: RTL !important;
         text-align: right !important;
     }
 
-    /* صندوق التعليمات */
     .instructions-box {
         background-color: #f8f9fa;
         border-right: 6px solid #1e3c72;
@@ -69,7 +67,6 @@ st.markdown("""
         text-align: right !important;
     }
 
-    /* تكبير وتظبيط خطوط الرغبات وباقي الحقول */
     .stSelectbox label, .stTextInput label {
         font-size: 17px !important;
         font-weight: 700 !important;
@@ -77,7 +74,6 @@ st.markdown("""
         text-align: right !important;
     }
     
-    /* زر الحفظ والتأكيد بلون أحمر قاني فخم */
     .stButton>button {
         width: 100%;
         background: linear-gradient(135deg, #8B0000 0%, #B22222 100%) !important;
@@ -107,8 +103,7 @@ if admin_pass == "2027":
     st.sidebar.success("تم الدخول بنجاح")
     st.title("📥 لوحة تحكم الكنترول المركزية")
     
-    # تقسيم لوحة الإدارة إلى تبويبين
-    tab1, tab2 = st.tabs(["📥 كشف الرغبات الخام", "⚙️ محرك التنسيق الآلي"])
+    tab1, tab2 = st.tabs(["📥 كشف الرغبات الخام", "⚙️ محرك التنسيق والإخراج الذكي"])
     
     with tab1:
         st.info("هنا يتم تجميع بيانات الطلاب الذين سجلوا رغباتهم، ويمكنك تحميل الكشف الخام.")
@@ -120,7 +115,7 @@ if admin_pass == "2027":
                 st.download_button(
                     label="📥 تحميل كشف الرغبات الخام (Excel)",
                     data=f,
-                    file_name='student_requests.xlsx',
+                    file_name='student_requests_raw.xlsx',
                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 )
         else:
@@ -128,7 +123,7 @@ if admin_pass == "2027":
             
     with tab2:
         st.markdown("### 🎯 إعداد السعة الاستيعابية للتخصصات")
-        st.write("أدخل العدد المطلوب لكل تخصص لبدء عملية الفرز والتوزيع الآلي بناءً على المجموع الأعلى فالأقل:")
+        st.write("أدخل العدد المطلوب لكل تخصص لبدء الفرز والتوزيع وإخراج الكشوفات النهائية المنسقة:")
         
         col1, col2, col3, col4 = st.columns(4)
         cap_football = col1.number_input("كرة القدم", min_value=0, value=60)
@@ -143,10 +138,9 @@ if admin_pass == "2027":
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        if st.button("⚙️ إجراء التنسيق وتوزيع الطلاب الآلي"):
+        if st.button("⚙️ إجراء التنسيق واستخراج كشوفات الكنترول"):
             if os.path.exists("student_requests.xlsx"):
-                # قراءة البيانات ومعالجة المجموع ليكون رقماً صحيحاً للفرز
-                df_req = pd.read_excel("student_requests.xlsx")
+                df_req = pd.read_excel("student_requests.xlsx", dtype=str)
                 df_req['المجموع'] = pd.to_numeric(df_req['المجموع'], errors='coerce').fillna(0)
                 df_sorted = df_req.sort_values(by='المجموع', ascending=False).reset_index(drop=True)
                 
@@ -163,7 +157,6 @@ if admin_pass == "2027":
                 allocations = []
                 current_capacity = {k: 0 for k in capacities.keys()}
                 
-                # تطبيق خوارزمية التوزيع
                 for index, row in df_sorted.iterrows():
                     assigned = False
                     for i in range(1, 8):
@@ -180,20 +173,71 @@ if admin_pass == "2027":
                     if not assigned:
                         allocations.append("غير موزع - اكتملت السعة")
                 
-                # حفظ النتيجة
                 df_sorted['التخصص النهائي'] = allocations
-                df_sorted.to_excel("Final_Distribution.xlsx", index=False)
                 
-                st.success("✅ تمت عملية التوزيع الآلي بنجاح!")
-                st.dataframe(df_sorted[['الاسم', 'المجموع', 'التخصص النهائي']])
+                # ----------------- الإخراج الاحترافي (ملف إكسيل فاخر ومتعدد الأوراق) -----------------
+                output = io.BytesIO()
+                writer = pd.ExcelWriter(output, engine='xlsxwriter')
+                workbook = writer.book
                 
-                with open("Final_Distribution.xlsx", "rb") as f:
-                    st.download_button(
-                        label="📥 تحميل كشف التوزيع النهائي المعتمد (Excel)",
-                        data=f,
-                        file_name='Final_Distribution.xlsx',
-                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    )
+                # إعدادات تنسيق الخلايا
+                header_format = workbook.add_format({'bold': True, 'text_wrap': True, 'valign': 'center', 'align': 'center', 'fg_color': '#1e3c72', 'font_color': 'white', 'border': 1})
+                cell_format = workbook.add_format({'align': 'center', 'valign': 'center', 'border': 1})
+                
+                # 1. ورقة الإحصائيات الشاملة
+                summary_data = df_sorted['التخصص النهائي'].value_counts().reset_index()
+                summary_data.columns = ['البيان (التخصص)', 'العدد الفعلي الموزع']
+                summary_data.to_excel(writer, sheet_name='إحصائيات التوزيع', index=False)
+                worksheet_summary = writer.sheets['إحصائيات التوزيع']
+                worksheet_summary.right_to_left()
+                worksheet_summary.set_column('A:A', 30, cell_format)
+                worksheet_summary.set_column('B:B', 20, cell_format)
+                for col_num, value in enumerate(summary_data.columns.values):
+                    worksheet_summary.write(0, col_num, value, header_format)
+                
+                # 2. أوراق العمل المستقلة لكل تخصص
+                specialties = df_sorted['التخصص النهائي'].unique()
+                for spec in specialties:
+                    spec_df = df_sorted[df_sorted['التخصص النهائي'] == spec].copy()
+                    
+                    # إخفاء الأعمدة غير الضرورية للطباعة وتنسيق التسلسل
+                    cols_to_drop = ['التخصص النهائي', 'القسم']
+                    spec_df = spec_df.drop(columns=[c for c in cols_to_drop if c in spec_df.columns])
+                    spec_df.reset_index(drop=True, inplace=True)
+                    spec_df.index += 1 # تسلسل يبدأ من 1
+                    spec_df.index.name = 'م'
+                    spec_df.reset_index(inplace=True)
+                    
+                    sheet_name = str(spec)[:31] # الحد الأقصى لاسم الورقة في إكسيل
+                    spec_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                    worksheet = writer.sheets[sheet_name]
+                    worksheet.right_to_left() # اتجاه من اليمين لليسار
+                    
+                    # ضبط عروض الأعمدة لتناسب الطباعة
+                    worksheet.set_column('A:A', 5, cell_format)   # م
+                    worksheet.set_column('B:B', 30, cell_format)  # الاسم
+                    worksheet.set_column('C:C', 18, cell_format)  # الرقم القومي
+                    worksheet.set_column('D:D', 15, cell_format)  # الهاتف
+                    worksheet.set_column('E:E', 10, cell_format)  # المجموع
+                    worksheet.set_column('F:F', 10, cell_format)  # النسبة
+                    worksheet.set_column('G:G', 15, cell_format)  # التقدير
+                    worksheet.set_column('H:N', 16, cell_format)  # الرغبات
+                    
+                    # تلوين ترويسة الجدول
+                    for col_num, value in enumerate(spec_df.columns.values):
+                        worksheet.write(0, col_num, value, header_format)
+                
+                writer.close()
+                output.seek(0)
+                # -----------------------------------------------------------------------------
+                
+                st.success("✅ تمت عملية الفرز وإنشاء الكشوفات النهائية بنجاح!")
+                st.download_button(
+                    label="📥 تحميل كشوفات الكنترول النهائية (ملف Excel منسق)",
+                    data=output,
+                    file_name='Official_Control_Distribution.xlsx',
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                )
             else:
                 st.error("⚠️ لا توجد بيانات للطلاب حتى الآن لإجراء التنسيق.")
     st.stop()
