@@ -175,14 +175,28 @@ if admin_pass == "2027":
                 
                 df_sorted['التخصص النهائي'] = allocations
                 
-                # ----------------- الإخراج الاحترافي (ملف إكسيل فاخر ومتعدد الأوراق) -----------------
+                # ----------------- الإخراج الاحترافي المطور (ملف إكسيل فاخر ومتعدد الأوراق) -----------------
                 output = io.BytesIO()
                 writer = pd.ExcelWriter(output, engine='xlsxwriter')
                 workbook = writer.book
                 
-                # إعدادات تنسيق الخلايا
-                header_format = workbook.add_format({'bold': True, 'text_wrap': True, 'valign': 'center', 'align': 'center', 'fg_color': '#1e3c72', 'font_color': 'white', 'border': 1})
-                cell_format = workbook.add_format({'align': 'center', 'valign': 'center', 'border': 1})
+                # إعدادات تنسيق الخلايا الجديدة
+                title_format = workbook.add_format({
+                    'bold': True, 'font_size': 18, 'valign': 'center', 'align': 'center',
+                    'fg_color': '#f1f8e9', 'font_color': '#2e7d32', 'border': 1
+                })
+                header_format = workbook.add_format({
+                    'bold': True, 'text_wrap': True, 'valign': 'center', 'align': 'center',
+                    'fg_color': '#1e3c72', 'font_color': 'white', 'border': 1
+                })
+                cell_format = workbook.add_format({
+                    'align': 'center', 'valign': 'center', 'border': 1
+                })
+                # تنسيق اللون الأخضر المفرح للرغبة المقبولة
+                highlight_format = workbook.add_format({
+                    'bg_color': '#d4edda', 'font_color': '#155724', 'bold': True, 'border': 1,
+                    'align': 'center', 'valign': 'center'
+                })
                 
                 # 1. ورقة الإحصائيات الشاملة
                 summary_data = df_sorted['التخصص النهائي'].value_counts().reset_index()
@@ -200,7 +214,7 @@ if admin_pass == "2027":
                 for spec in specialties:
                     spec_df = df_sorted[df_sorted['التخصص النهائي'] == spec].copy()
                     
-                    # إخفاء الأعمدة غير الضرورية للطباعة وتنسيق التسلسل
+                    # إخفاء الأعمدة غير الضرورية وتجهيز التسلسل
                     cols_to_drop = ['التخصص النهائي', 'القسم']
                     spec_df = spec_df.drop(columns=[c for c in cols_to_drop if c in spec_df.columns])
                     spec_df.reset_index(drop=True, inplace=True)
@@ -208,24 +222,44 @@ if admin_pass == "2027":
                     spec_df.index.name = 'م'
                     spec_df.reset_index(inplace=True)
                     
-                    sheet_name = str(spec)[:31] # الحد الأقصى لاسم الورقة في إكسيل
-                    spec_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                    sheet_name = str(spec)[:31]
+                    # كتابة البيانات بدءاً من الصف الثاني لترك الصف الأول للعنوان الرئيسي
+                    spec_df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=1)
                     worksheet = writer.sheets[sheet_name]
-                    worksheet.right_to_left() # اتجاه من اليمين لليسار
+                    worksheet.right_to_left() 
                     
-                    # ضبط عروض الأعمدة لتناسب الطباعة
-                    worksheet.set_column('A:A', 5, cell_format)   # م
-                    worksheet.set_column('B:B', 30, cell_format)  # الاسم
-                    worksheet.set_column('C:C', 18, cell_format)  # الرقم القومي
-                    worksheet.set_column('D:D', 15, cell_format)  # الهاتف
-                    worksheet.set_column('E:E', 10, cell_format)  # المجموع
-                    worksheet.set_column('F:F', 10, cell_format)  # النسبة
-                    worksheet.set_column('G:G', 15, cell_format)  # التقدير
-                    worksheet.set_column('H:N', 16, cell_format)  # الرغبات
+                    # --- الإضافات الجمالية والعملية الجديدة ---
                     
-                    # تلوين ترويسة الجدول
+                    # إضافة العنوان الرئيسي وتكبيره
+                    worksheet.merge_range(0, 0, 0, len(spec_df.columns)-1, f'كشف توزيع الطلاب النهائي - تخصص ( {spec} )', title_format)
+                    worksheet.set_row(0, 35) # زيادة ارتفاع صف العنوان
+                    
+                    # ضبط عروض الأعمدة
+                    worksheet.set_column('A:A', 5, cell_format)   
+                    worksheet.set_column('B:B', 30, cell_format)  
+                    worksheet.set_column('C:C', 18, cell_format)  
+                    worksheet.set_column('D:D', 15, cell_format)  
+                    worksheet.set_column('E:E', 10, cell_format)  
+                    worksheet.set_column('F:F', 10, cell_format)  
+                    worksheet.set_column('G:G', 15, cell_format)  
+                    worksheet.set_column('H:N', 16, cell_format)  
+                    
+                    # تلوين ترويسة الجدول (أصبحت في الصف رقم 1 برمجياً)
                     for col_num, value in enumerate(spec_df.columns.values):
-                        worksheet.write(0, col_num, value, header_format)
+                        worksheet.write(1, col_num, value, header_format)
+                        
+                    # تطبيق التظليل الأخضر التلقائي على الرغبة المتوافقة مع التخصص
+                    # الأعمدة من H (رقم 7) إلى N (رقم 13) هي أعمدة الرغبات
+                    worksheet.conditional_format(2, 7, len(spec_df)+1, 13, {
+                        'type': 'cell',
+                        'criteria': '==',
+                        'value': f'"{spec}"',
+                        'format': highlight_format
+                    })
+                    
+                    # تجميد الصفوف العلوية والفلاتر
+                    worksheet.freeze_panes(2, 0) # تجميد العنوان والترويسة
+                    worksheet.autofilter(1, 0, len(spec_df)+1, len(spec_df.columns)-1) # إضافة فلاتر للمراجعة
                 
                 writer.close()
                 output.seek(0)
