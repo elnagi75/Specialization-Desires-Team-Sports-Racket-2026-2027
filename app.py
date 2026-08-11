@@ -16,7 +16,7 @@ st.markdown("""
         font-family: 'Cairo', sans-serif;
     }
     
-    /* تنسيق العنوان الرئيسي: توسيط وبنفس الحجم والنمط الكبير */
+    /* تنسيق العنوان الرئيسي */
     .main-title {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         color: white;
@@ -109,7 +109,7 @@ if admin_pass == "2027":
     st.info("هنا يتم تجميع بيانات الطلاب الذين سجلوا رغباتهم في ملف إكسيل منظم.")
     
     if os.path.exists("student_requests.xlsx"):
-        df_requests = pd.read_excel("student_requests.xlsx")
+        df_requests = pd.read_excel("student_requests.xlsx", dtype=str)
         st.dataframe(df_requests)
         
         with open("student_requests.xlsx", "rb") as f:
@@ -146,9 +146,9 @@ st.markdown("""
 <div class="instructions-box">
     <h3>📌 تعليمات هامة للتسجيل:</h3>
     <ul>
-        <li><b>استدعاء البيانات:</b> ابدأ بكتابة أول حرفين من اسمك في خانة البحث أدناه، وقم باختياره لتظهر درجاتك ومقررك المعتمد.</li>
-        <li><b>الخطوة البينية الأمنية:</b> أدخل (الرقم القومي 14 رقماً) و(رقم الواتساب) واضغط للتحقق وفتح صفحة رغباتك.</li>
-        <li><b>ترتيب الرغبات:</b> يجب ترتيب <b>جميع التخصصات السبعة</b> دون تكرار (كل تخصص يتم اختياره يختفي تلقائياً من الخيارات التالية).</li>
+        <li><b>استدعاء البيانات:</b> ابدأ بكتابة أول حرفين من اسمك في خانة البحث أدناه، وقم باختياره لتظهر درجاتك.</li>
+        <li><b>حماية البيانات:</b> يجب إدخال (الرقم القومي) بشكل صحيح. إذا كنت تعدل رغباتك، يجب أن يتطابق مع الرقم الذي سجلت به أول مرة.</li>
+        <li><b>ترتيب الرغبات:</b> يجب ترتيب <b>جميع التخصصات السبعة</b> دون تكرار.</li>
         <li><b>مواعيد وقابلية التعديل:</b> ⏳ يفتح باب التسجيل والتعديل من يوم <b>الأحد 9-8-2026</b> حتى يوم <b>السبت 22-8-2026</b>.</li>
         <li><b>طباعة الإيصال:</b> 🖨️ بعد حفظ رغباتك، سيظهر لك زر طباعة نشط لحفظ رغباتك كملف PDF باسمك الرسمي.</li>
     </ul>
@@ -198,9 +198,10 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
     student_data = df[df['الاسم'] == selected_name].iloc[0]
     dept_name = get_dept(student_data)
     
+    # فحص التسجيل السابق بصيغة نصوص لتجنب الأخطاء العلمية للأرقام
     saved_record = None
     if os.path.exists("student_requests.xlsx"):
-        df_reqs = pd.read_excel("student_requests.xlsx")
+        df_reqs = pd.read_excel("student_requests.xlsx", dtype=str)
         match = df_reqs[df_reqs['الاسم'] == selected_name]
         if not match.empty:
             saved_record = match.iloc[0]
@@ -219,20 +220,33 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
         
     st.markdown("---")
     
-    st.markdown("### 📱 الخطوة الأمنية: إدخال بيانات التوثيق")
+    # الخطوة البينية: إدخال بيانات التوثيق (تم مسح القيم الافتراضية لمنع الاختراق)
+    st.markdown("### 🔒 الخطوة الأمنية: إدخال الرقم القومي (بمثابة كلمة السر)")
     
-    default_id = str(saved_record['الرقم القومي']) if saved_record is not None else ""
-    default_phone = str(saved_record['رقم الهاتف']) if saved_record is not None else ""
+    nat_id = st.text_input("الرقم القومي (14 رقماً):", max_chars=14, placeholder="أدخل الرقم القومي الخاص بك للتحقق")
+    phone = st.text_input("رقم الهاتف (واتساب):", max_chars=11, placeholder="01xxxxxxxx0")
     
-    nat_id = st.text_input("الرقم القومي (14 رقماً):", value=default_id, max_chars=14, placeholder="أدخل الرقم القومي المدون ببطاقة الرقم القومي")
-    phone = st.text_input("رقم الهاتف (واتساب):", value=default_phone, max_chars=11, placeholder="01xxxxxxxx0")
-    
+    # التحقق الأمني الصارم
+    can_proceed = False
     if len(nat_id) == 14 and len(phone) >= 10:
         if saved_record is not None:
-            st.info("💡 تم العثور على رغباتك المسجلة مسبقاً. يمكنك تعديلها وإعادة الحفظ أدناه.")
-        else:
-            st.success("🔓 تم التحقق من البيانات بنجاح! تم فتح خانات ترتيب الرغبات أدناه:")
+            # مطابقة الرقم القومي المدخل بالرقم المسجل مسبقا
+            saved_nat_id = str(saved_record['الرقم القومي']).strip().split('.')[0] # معالجة أي كسور من الإكسيل
+            current_nat_id = str(nat_id).strip()
             
+            if current_nat_id == saved_nat_id:
+                st.info("💡 تم التحقق من هويتك بنجاح. يمكنك الآن تعديل رغباتك المسجلة مسبقاً وإعادة الحفظ.")
+                can_proceed = True
+            else:
+                st.error("❌ تحذير أمني: الرقم القومي المدخل لا يتطابق مع الرقم الذي تم التسجيل به مسبقاً لهذا الاسم. لا يمكنك الدخول.")
+                can_proceed = False
+        else:
+            st.success("🔓 تم التحقق الأولي! يمكنك الآن ترتيب رغباتك أدناه (تذكر أن هذا الرقم القومي سيكون كلمة سرك للتعديل لاحقاً):")
+            can_proceed = True
+    else:
+        st.warning("🔒 يرجى إدخال الرقم القومي المكون من 14 رقماً ورقم الهاتف لفتح خانات ترتيب الرغبات.")
+
+    if can_proceed:
         st.markdown("---")
         st.markdown("#### 🎯 حدد رغباتك بترتيب الأولوية (من الأولى إلى السابعة):")
         
@@ -293,7 +307,7 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 })
                 
                 if os.path.exists("student_requests.xlsx"):
-                    df_requests = pd.read_excel("student_requests.xlsx")
+                    df_requests = pd.read_excel("student_requests.xlsx", dtype=str)
                     df_requests = df_requests[df_requests['الاسم'] != selected_name]
                     df_requests = pd.concat([df_requests, new_data], ignore_index=True)
                 else:
@@ -305,7 +319,7 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 st.balloons()
                 st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
 
-        # عرض الإيصال مع تحديد اسم الطالب كعنوان افتراضي لملف الـ PDF عند الطباعة والحفظ
+        # عرض الإيصال
         if saved_record is not None or st.session_state.get('just_saved', False):
             cur_r1 = r1 if 'r1' in locals() else saved_record.get('رغبة 1')
             cur_r2 = r2 if 'r2' in locals() else saved_record.get('رغبة 2')
@@ -455,5 +469,3 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
             </html>
             """
             components.html(receipt_html, height=580, scrolling=True)
-    else:
-        st.warning("🔒 يرجى إدخال الرقم القومي المكون من 14 رقماً ورقم الهاتف (واتساب) بشكل صحيح لفتح خانات ترتيب الرغبات.")
