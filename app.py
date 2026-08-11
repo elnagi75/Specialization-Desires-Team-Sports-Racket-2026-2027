@@ -150,7 +150,7 @@ st.markdown("""
         <li><b>حماية البيانات:</b> يجب إدخال (الرقم القومي) بشكل صحيح. إذا كنت تعدل رغباتك، يجب أن يتطابق مع الرقم الذي سجلت به أول مرة.</li>
         <li><b>ترتيب الرغبات:</b> يجب ترتيب <b>جميع التخصصات السبعة</b> دون تكرار.</li>
         <li><b>مواعيد وقابلية التعديل:</b> ⏳ يفتح باب التسجيل والتعديل من يوم <b>الأحد 9-8-2026</b> حتى يوم <b>السبت 22-8-2026</b>.</li>
-        <li><b>طباعة الإيصال:</b> 🖨️ بعد حفظ رغباتك، سيظهر لك زر طباعة نشط لحفظ رغباتك كملف PDF باسمك الرسمي.</li>
+        <li><b>التواصل والإيصال:</b> 📱 بعد حفظ رغباتك، انضم لجروب الواتساب الرسمي للدفعة، وقم بطباعة الإيصال كملف PDF باسمك.</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
@@ -220,7 +220,7 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
         
     st.markdown("---")
     
-    # الخطوة البينية: إدخال بيانات التوثيق (تم مسح القيم الافتراضية لمنع الاختراق)
+    # الخطوة البينية: إدخال بيانات التوثيق
     st.markdown("### 🔒 الخطوة الأمنية: إدخال الرقم القومي (بمثابة كلمة السر)")
     
     nat_id = st.text_input("الرقم القومي (14 رقماً):", max_chars=14, placeholder="أدخل الرقم القومي الخاص بك للتحقق")
@@ -231,7 +231,7 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
     if len(nat_id) == 14 and len(phone) >= 10:
         if saved_record is not None:
             # مطابقة الرقم القومي المدخل بالرقم المسجل مسبقا
-            saved_nat_id = str(saved_record['الرقم القومي']).strip().split('.')[0] # معالجة أي كسور من الإكسيل
+            saved_nat_id = str(saved_record['الرقم القومي']).strip().split('.')[0] 
             current_nat_id = str(nat_id).strip()
             
             if current_nat_id == saved_nat_id:
@@ -319,7 +319,7 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 st.balloons()
                 st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
 
-        # عرض الإيصال
+        # عرض الإيصال وزر الواتساب والطباعة
         if saved_record is not None or st.session_state.get('just_saved', False):
             cur_r1 = r1 if 'r1' in locals() else saved_record.get('رغبة 1')
             cur_r2 = r2 if 'r2' in locals() else saved_record.get('رغبة 2')
@@ -413,8 +413,23 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                         width: 100%;
                         font-family: 'Cairo', sans-serif;
                     }}
-                    .print-btn:hover {{
+                    .wa-btn {{
+                        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+                        color: white;
+                        padding: 12px 25px;
+                        font-size: 17px;
+                        font-weight: bold;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);
+                        width: 100%;
+                        font-family: 'Cairo', sans-serif;
+                        margin-bottom: 12px;
+                    }}
+                    .btn-hover:hover {{
                         opacity: 0.95;
+                        transform: translateY(-1px);
                     }}
                     @media print {{
                         .print-btn-container {{
@@ -458,14 +473,19 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 </div>
                 
                 <div class="print-btn-container">
-                    <button class="print-btn" onclick="window.print()">
+                    <a href="https://chat.whatsapp.com/IvBUaPqw5RfExr4ZrEjjWV" target="_blank" style="text-decoration: none;">
+                        <button class="wa-btn btn-hover">
+                            💬 انضم الآن لجروب الواتساب الرسمي
+                        </button>
+                    </a>
+                    <button class="print-btn btn-hover" onclick="window.print()">
                         🖨️ طباعة أو حفظ الإيصال (PDF)
                     </button>
                     <p style="margin-top: 8px; color: #2e7d32; font-weight: 700; font-size: 14px; margin-bottom: 0;">
-                        📌 احفظ رغباتك ملف pdf كمستند رسمي لك
+                        📌 احفظ رغباتك وانضم للجروب لمتابعة أحدث التعليمات
                     </p>
                 </div>
             </body>
             </html>
             """
-            components.html(receipt_html, height=580, scrolling=True)
+            components.html(receipt_html, height=650, scrolling=True)
