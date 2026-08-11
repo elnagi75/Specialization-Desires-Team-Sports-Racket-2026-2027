@@ -99,28 +99,103 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. بوابة دخول الإدارة في القائمة الجانبية
+# 2. بوابة دخول الإدارة في القائمة الجانبية (المحرك الشامل)
 st.sidebar.title("👨‍💻 لوحة الكنترول والإدارة")
 admin_pass = st.sidebar.text_input("أدخل كلمة المرور:", type="password")
 
 if admin_pass == "2027":
     st.sidebar.success("تم الدخول بنجاح")
-    st.title("📥 لوحة تحكم الإدارة (تحميل الرغبات)")
-    st.info("هنا يتم تجميع بيانات الطلاب الذين سجلوا رغباتهم في ملف إكسيل منظم.")
+    st.title("📥 لوحة تحكم الكنترول المركزية")
     
-    if os.path.exists("student_requests.xlsx"):
-        df_requests = pd.read_excel("student_requests.xlsx", dtype=str)
-        st.dataframe(df_requests)
+    # تقسيم لوحة الإدارة إلى تبويبين
+    tab1, tab2 = st.tabs(["📥 كشف الرغبات الخام", "⚙️ محرك التنسيق الآلي"])
+    
+    with tab1:
+        st.info("هنا يتم تجميع بيانات الطلاب الذين سجلوا رغباتهم، ويمكنك تحميل الكشف الخام.")
+        if os.path.exists("student_requests.xlsx"):
+            df_requests = pd.read_excel("student_requests.xlsx", dtype=str)
+            st.dataframe(df_requests)
+            
+            with open("student_requests.xlsx", "rb") as f:
+                st.download_button(
+                    label="📥 تحميل كشف الرغبات الخام (Excel)",
+                    data=f,
+                    file_name='student_requests.xlsx',
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                )
+        else:
+            st.warning("لم يقم أي طالب بالتسجيل حتى الآن.")
+            
+    with tab2:
+        st.markdown("### 🎯 إعداد السعة الاستيعابية للتخصصات")
+        st.write("أدخل العدد المطلوب لكل تخصص لبدء عملية الفرز والتوزيع الآلي بناءً على المجموع الأعلى فالأقل:")
         
-        with open("student_requests.xlsx", "rb") as f:
-            st.download_button(
-                label="📥 تحميل كشف الرغبات النهائي (Excel)",
-                data=f,
-                file_name='student_requests.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            )
-    else:
-        st.warning("لم يقم أي طالب بالتسجيل حتى الآن.")
+        col1, col2, col3, col4 = st.columns(4)
+        cap_football = col1.number_input("كرة القدم", min_value=0, value=60)
+        cap_handball = col2.number_input("كرة اليد", min_value=0, value=50)
+        cap_volleyball = col3.number_input("الكرة الطائرة", min_value=0, value=50)
+        cap_basketball = col4.number_input("كرة السلة", min_value=0, value=45)
+        
+        col5, col6, col7, col8 = st.columns(4)
+        cap_hockey = col5.number_input("الهوكي", min_value=0, value=40)
+        cap_tennis = col6.number_input("التنس الأرضي", min_value=0, value=45)
+        cap_squash = col7.number_input("اسكواش", min_value=0, value=40)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        if st.button("⚙️ إجراء التنسيق وتوزيع الطلاب الآلي"):
+            if os.path.exists("student_requests.xlsx"):
+                # قراءة البيانات ومعالجة المجموع ليكون رقماً صحيحاً للفرز
+                df_req = pd.read_excel("student_requests.xlsx")
+                df_req['المجموع'] = pd.to_numeric(df_req['المجموع'], errors='coerce').fillna(0)
+                df_sorted = df_req.sort_values(by='المجموع', ascending=False).reset_index(drop=True)
+                
+                capacities = {
+                    'كرة القدم': cap_football,
+                    'كرة اليد': cap_handball,
+                    'الكرة الطائرة': cap_volleyball,
+                    'كرة السلة': cap_basketball,
+                    'الهوكي': cap_hockey,
+                    'التنس الأرضي': cap_tennis,
+                    'اسكواش': cap_squash
+                }
+                
+                allocations = []
+                current_capacity = {k: 0 for k in capacities.keys()}
+                
+                # تطبيق خوارزمية التوزيع
+                for index, row in df_sorted.iterrows():
+                    assigned = False
+                    for i in range(1, 8):
+                        choice = row.get(f'رغبة {i}')
+                        if pd.isna(choice):
+                            continue
+                        
+                        if choice in current_capacity and current_capacity[choice] < capacities[choice]:
+                            allocations.append(choice)
+                            current_capacity[choice] += 1
+                            assigned = True
+                            break
+                            
+                    if not assigned:
+                        allocations.append("غير موزع - اكتملت السعة")
+                
+                # حفظ النتيجة
+                df_sorted['التخصص النهائي'] = allocations
+                df_sorted.to_excel("Final_Distribution.xlsx", index=False)
+                
+                st.success("✅ تمت عملية التوزيع الآلي بنجاح!")
+                st.dataframe(df_sorted[['الاسم', 'المجموع', 'التخصص النهائي']])
+                
+                with open("Final_Distribution.xlsx", "rb") as f:
+                    st.download_button(
+                        label="📥 تحميل كشف التوزيع النهائي المعتمد (Excel)",
+                        data=f,
+                        file_name='Final_Distribution.xlsx',
+                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    )
+            else:
+                st.error("⚠️ لا توجد بيانات للطلاب حتى الآن لإجراء التنسيق.")
     st.stop()
 
 # 3. عرض الشعارات الأكاديمية والعنوان الرئيسي
@@ -198,7 +273,6 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
     student_data = df[df['الاسم'] == selected_name].iloc[0]
     dept_name = get_dept(student_data)
     
-    # فحص التسجيل السابق بصيغة نصوص لتجنب الأخطاء العلمية للأرقام
     saved_record = None
     if os.path.exists("student_requests.xlsx"):
         df_reqs = pd.read_excel("student_requests.xlsx", dtype=str)
@@ -220,17 +294,14 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
         
     st.markdown("---")
     
-    # الخطوة البينية: إدخال بيانات التوثيق
     st.markdown("### 🔒 الخطوة الأمنية: إدخال الرقم القومي (بمثابة كلمة السر)")
     
     nat_id = st.text_input("الرقم القومي (14 رقماً):", max_chars=14, placeholder="أدخل الرقم القومي الخاص بك للتحقق")
     phone = st.text_input("رقم الهاتف (واتساب):", max_chars=11, placeholder="01xxxxxxxx0")
     
-    # التحقق الأمني الصارم
     can_proceed = False
     if len(nat_id) == 14 and len(phone) >= 10:
         if saved_record is not None:
-            # مطابقة الرقم القومي المدخل بالرقم المسجل مسبقا
             saved_nat_id = str(saved_record['الرقم القومي']).strip().split('.')[0] 
             current_nat_id = str(nat_id).strip()
             
@@ -319,7 +390,6 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 st.balloons()
                 st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
 
-        # عرض الإيصال وزر الواتساب والطباعة
         if saved_record is not None or st.session_state.get('just_saved', False):
             cur_r1 = r1 if 'r1' in locals() else saved_record.get('رغبة 1')
             cur_r2 = r2 if 'r2' in locals() else saved_record.get('رغبة 2')
