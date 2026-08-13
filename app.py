@@ -46,25 +46,31 @@ st.markdown("""
         border-bottom: 4px solid #1e3c72;
         transition: transform 0.3s ease;
         margin-bottom: 15px;
+        min-height: 135px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
     .stat-card:hover {
         transform: translateY(-5px);
     }
     .stat-card h2 {
         margin: 0;
-        font-size: 26px;
+        font-size: 28px;
         font-weight: 900;
         color: #333;
+        line-height: 1.2;
     }
     .stat-card p {
         margin: 5px 0 0 0;
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 700;
         color: #666;
     }
     .stat-icon {
-        font-size: 24px;
-        margin-bottom: 5px;
+        font-size: 26px;
+        margin-bottom: 8px;
     }
 
     .stMarkdown, p, li, label, .stTextInput, .stSelectbox {
@@ -319,10 +325,11 @@ with col_logo2:
     if os.path.exists("uni_logo.png"):
         st.image("uni_logo.png", use_container_width=True)
 
-# --- 5. عرض لوحة الإحصائيات (بنظام الأعمدة لمنع الأخطاء) ---
-col_stat1, col_stat2, col_stat3 = st.columns(3)
+# --- 5. عرض لوحة الإحصائيات (عكس الترتيب ليتوافق مع اللغة العربية) ---
+# ترتيب الأعمدة: اليسار للعداد (col_timer)، الوسط للمتبقي، اليمين للمسجلين (col_registered)
+col_timer, col_remaining, col_registered = st.columns(3)
 
-with col_stat1:
+with col_registered:
     st.markdown(f"""
     <div class="stat-card" style="border-bottom-color: #2e7d32;">
         <div class="stat-icon">✅</div>
@@ -331,7 +338,7 @@ with col_stat1:
     </div>
     """, unsafe_allow_html=True)
 
-with col_stat2:
+with col_remaining:
     st.markdown(f"""
     <div class="stat-card" style="border-bottom-color: #d35400;">
         <div class="stat-icon">⏳</div>
@@ -340,7 +347,7 @@ with col_stat2:
     </div>
     """, unsafe_allow_html=True)
 
-with col_stat3:
+with col_timer:
     timer_html = f"""
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
@@ -356,60 +363,119 @@ with col_stat3:
             }}
             .stat-card {{
                 background: #fff5f5;
-                padding: 12px 10px;
+                padding: 10px 5px;
                 border-radius: 12px;
                 text-align: center;
                 box-shadow: 0 4px 10px rgba(0,0,0,0.08);
                 border-bottom: 4px solid #c0392b;
                 box-sizing: border-box;
-            }}
-            .stat-card h2 {{
-                margin: 0;
-                font-size: 19px;
-                font-weight: 900;
-                color: #c0392b;
-                direction: ltr;
+                height: 135px; /* لمساواة الارتفاع مع باقي الكروت */
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
             }}
             .stat-card p {{
-                margin: 5px 0 0 0;
+                margin: 0 0 8px 0;
                 font-size: 14px;
                 font-weight: 700;
                 color: #c0392b;
             }}
-            .stat-icon {{
-                font-size: 24px;
-                margin-bottom: 5px;
+            .timer-wrapper {{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 6px;
+                direction: ltr; /* اتجاه الأرقام من اليسار لليمين */
+            }}
+            .time-box {{
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background-color: white;
+                border: 1px solid #ffcccc;
+                border-radius: 8px;
+                width: 42px;
+                padding: 4px 0;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }}
+            .number {{
+                font-size: 18px;
+                font-weight: 900;
+                color: #c0392b;
+                line-height: 1.1;
+            }}
+            .label {{
+                font-size: 10px;
+                font-weight: 700;
+                color: #7f8c8d;
+                margin-top: 2px;
+            }}
+            .colon {{
+                font-size: 18px;
+                font-weight: 900;
+                color: #c0392b;
+                margin-bottom: 15px; /* لضبط المحاذاة مع الأرقام */
             }}
         </style>
     </head>
     <body>
         <div class="stat-card">
-            <div class="stat-icon">⏰</div>
-            <h2 id="countdown">جاري الحساب...</h2>
-            <p>لإغلاق المنصة نهائياً</p>
+            <p>⏰ لغلق المنصة نهائياً</p>
+            <div class="timer-wrapper" id="timer-display">
+                <div class="time-box">
+                    <span class="number" id="days">0</span>
+                    <span class="label">يوم</span>
+                </div>
+                <span class="colon">:</span>
+                <div class="time-box">
+                    <span class="number" id="hours">0</span>
+                    <span class="label">ساعة</span>
+                </div>
+                <span class="colon">:</span>
+                <div class="time-box">
+                    <span class="number" id="minutes">0</span>
+                    <span class="label">دقيقة</span>
+                </div>
+                <span class="colon">:</span>
+                <div class="time-box">
+                    <span class="number" id="seconds">0</span>
+                    <span class="label">ثانية</span>
+                </div>
+            </div>
+            <div id="expired-msg" style="display:none; color:#c0392b; font-weight:bold; font-size:18px; margin-top:10px;">
+                تم إغلاق المنصة
+            </div>
         </div>
         <script>
         var countDownDate = new Date("Aug 22, 2026 23:59:59").getTime();
         var x = setInterval(function() {{
           var now = new Date().getTime();
           var distance = countDownDate - now;
+          
+          if (distance < 0) {{
+            clearInterval(x);
+            document.getElementById("timer-display").style.display = "none";
+            document.getElementById("expired-msg").style.display = "block";
+            return;
+          }}
+          
           var days = Math.floor(distance / (1000 * 60 * 60 * 24));
           var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
           var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
           var seconds = Math.floor((distance % (1000 * 60)) / 1000);
           
-          document.getElementById("countdown").innerHTML = days + "يوم : " + hours + "س : " + minutes + "د : " + seconds + "ث ";
+          document.getElementById("days").innerText = days < 10 ? "0" + days : days;
+          document.getElementById("hours").innerText = hours < 10 ? "0" + hours : hours;
+          document.getElementById("minutes").innerText = minutes < 10 ? "0" + minutes : minutes;
+          document.getElementById("seconds").innerText = seconds < 10 ? "0" + seconds : seconds;
           
-          if (distance < 0) {{
-            clearInterval(x);
-            document.getElementById("countdown").innerHTML = "تم إغلاق المنصة";
-          }}
         }}, 1000);
         </script>
     </body>
     </html>
     """
-    components.html(timer_html, height=130)
+    components.html(timer_html, height=145)
 
 # 6. صندوق التعليمات الفاخر
 st.markdown("""
