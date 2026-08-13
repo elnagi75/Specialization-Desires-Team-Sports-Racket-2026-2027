@@ -36,41 +36,42 @@ st.markdown("""
         text-align: center !important;
     }
     
-    /* تنسيق كروت الإحصائيات الفردية */
+    /* تنسيق كروت الإحصائيات الفردية ليكون حجمها متطابق بالمليمتر ومحتواها بمنتصف المركز */
     .stat-card {
         background: white;
-        padding: 15px 10px;
         border-radius: 12px;
         text-align: center;
         box-shadow: 0 4px 10px rgba(0,0,0,0.08);
         border-bottom: 4px solid #1e3c72;
         transition: transform 0.3s ease;
         margin-bottom: 15px;
-        min-height: 135px;
+        height: 165px; /* ارتفاع ثابت لتوحيد حجم كل الكروت */
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        padding: 10px;
+        box-sizing: border-box;
     }
     .stat-card:hover {
         transform: translateY(-5px);
     }
     .stat-card h2 {
         margin: 0;
-        font-size: 28px;
+        font-size: 40px; /* تكبير الرقم */
         font-weight: 900;
         color: #333;
-        line-height: 1.2;
+        line-height: 1.1;
     }
     .stat-card p {
-        margin: 5px 0 0 0;
-        font-size: 15px;
+        margin: 8px 0 0 0;
+        font-size: 16px; /* تكبير النص */
         font-weight: 700;
         color: #666;
     }
     .stat-icon {
-        font-size: 26px;
-        margin-bottom: 8px;
+        font-size: 30px; /* تكبير الأيقونة */
+        margin-bottom: 5px;
     }
 
     .stMarkdown, p, li, label, .stTextInput, .stSelectbox {
@@ -325,8 +326,8 @@ with col_logo2:
     if os.path.exists("uni_logo.png"):
         st.image("uni_logo.png", use_container_width=True)
 
-# --- 5. عرض لوحة الإحصائيات (عكس الترتيب ليتوافق مع اللغة العربية) ---
-# ترتيب الأعمدة: اليسار للعداد (col_timer)، الوسط للمتبقي، اليمين للمسجلين (col_registered)
+# --- 5. عرض لوحة الإحصائيات المحدثة (عكس الترتيب ليتوافق مع اللغة العربية) ---
+# ترتيب الأعمدة: اليسار للعداد، الوسط للمتبقي، اليمين للمسجلين
 col_timer, col_remaining, col_registered = st.columns(3)
 
 with col_registered:
@@ -369,24 +370,25 @@ with col_timer:
                 box-shadow: 0 4px 10px rgba(0,0,0,0.08);
                 border-bottom: 4px solid #c0392b;
                 box-sizing: border-box;
-                height: 135px; /* لمساواة الارتفاع مع باقي الكروت */
+                height: 165px; /* نفس ارتفاع باقي المربعات بالمليمتر */
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
             }}
             .stat-card p {{
-                margin: 0 0 8px 0;
-                font-size: 14px;
+                margin: 0 0 12px 0;
+                font-size: 16px;
                 font-weight: 700;
                 color: #c0392b;
             }}
+            /* عكس اتجاه العداد ليكون اليمين لليسار (يوم، ساعة، دقيقة، ثانية) */
             .timer-wrapper {{
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                gap: 6px;
-                direction: ltr; /* اتجاه الأرقام من اليسار لليمين */
+                gap: 8px;
+                direction: rtl; 
             }}
             .time-box {{
                 display: flex;
@@ -395,27 +397,27 @@ with col_timer:
                 background-color: white;
                 border: 1px solid #ffcccc;
                 border-radius: 8px;
-                width: 42px;
-                padding: 4px 0;
+                width: 50px; /* تكبير المربع */
+                padding: 6px 0;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             }}
             .number {{
-                font-size: 18px;
+                font-size: 22px; /* تكبير خط الأرقام */
                 font-weight: 900;
                 color: #c0392b;
-                line-height: 1.1;
+                line-height: 1;
             }}
             .label {{
-                font-size: 10px;
+                font-size: 12px;
                 font-weight: 700;
                 color: #7f8c8d;
-                margin-top: 2px;
+                margin-top: 4px;
             }}
             .colon {{
-                font-size: 18px;
+                font-size: 22px;
                 font-weight: 900;
                 color: #c0392b;
-                margin-bottom: 15px; /* لضبط المحاذاة مع الأرقام */
+                margin-bottom: 20px; /* ضبط التوسيط العمودي للنقطتين */
             }}
         </style>
     </head>
@@ -475,7 +477,8 @@ with col_timer:
     </body>
     </html>
     """
-    components.html(timer_html, height=145)
+    # زيادة ارتفاع المكون ليتناسب مع الكروت الجانبية
+    components.html(timer_html, height=180)
 
 # 6. صندوق التعليمات الفاخر
 st.markdown("""
