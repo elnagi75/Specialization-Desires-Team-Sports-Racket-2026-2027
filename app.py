@@ -4,11 +4,35 @@ import streamlit.components.v1 as components
 from datetime import date
 import os
 import io
+import json
 
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية وألعاب المضرب", layout="centered", page_icon="🎓")
 
-# تنسيقات CSS العامة للمنصة
+# --- نظام الإحصائيات (تتبع الزوار والطباعة) ---
+STATS_FILE = "platform_stats.json"
+
+def load_stats():
+    if os.path.exists(STATS_FILE):
+        try:
+            with open(STATS_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            pass
+    return {"visitors": 0, "prints": 0}
+
+def save_stats(stats):
+    with open(STATS_FILE, 'w') as f:
+        json.dump(stats, f)
+
+# تسجيل زيارة جديدة (مرة واحدة لكل جلسة)
+if 'visited' not in st.session_state:
+    st.session_state['visited'] = True
+    current_stats = load_stats()
+    current_stats['visitors'] += 1
+    save_stats(current_stats)
+
+# تنسيقات CSS العامة للمنصة وللوحة الإحصائيات
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
@@ -34,6 +58,44 @@ st.markdown("""
         line-height: 1.5;
         margin: 0 !important;
         text-align: center !important;
+    }
+    
+    /* تنسيق كروت الإحصائيات الأنيقة */
+    .dashboard-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 30px;
+        direction: rtl;
+    }
+    .stat-card {
+        flex: 1;
+        background: white;
+        padding: 15px 10px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        border-bottom: 4px solid #1e3c72;
+        transition: transform 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-card h2 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 900;
+        color: #333;
+    }
+    .stat-card p {
+        margin: 5px 0 0 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: #666;
+    }
+    .stat-icon {
+        font-size: 24px;
+        margin-bottom: 5px;
     }
 
     .stMarkdown, p, li, label, .stTextInput, .stSelectbox {
@@ -175,30 +237,15 @@ if admin_pass == "2027":
                 
                 df_sorted['التخصص النهائي'] = allocations
                 
-                # ----------------- الإخراج الاحترافي المطور (ملف إكسيل فاخر ومتعدد الأوراق) -----------------
                 output = io.BytesIO()
                 writer = pd.ExcelWriter(output, engine='xlsxwriter')
                 workbook = writer.book
                 
-                # إعدادات تنسيق الخلايا الجديدة
-                title_format = workbook.add_format({
-                    'bold': True, 'font_size': 18, 'valign': 'center', 'align': 'center',
-                    'fg_color': '#f1f8e9', 'font_color': '#2e7d32', 'border': 1
-                })
-                header_format = workbook.add_format({
-                    'bold': True, 'text_wrap': True, 'valign': 'center', 'align': 'center',
-                    'fg_color': '#1e3c72', 'font_color': 'white', 'border': 1
-                })
-                cell_format = workbook.add_format({
-                    'align': 'center', 'valign': 'center', 'border': 1
-                })
-                # تنسيق اللون الأخضر المفرح للرغبة المقبولة
-                highlight_format = workbook.add_format({
-                    'bg_color': '#d4edda', 'font_color': '#155724', 'bold': True, 'border': 1,
-                    'align': 'center', 'valign': 'center'
-                })
+                title_format = workbook.add_format({'bold': True, 'font_size': 18, 'valign': 'center', 'align': 'center', 'fg_color': '#f1f8e9', 'font_color': '#2e7d32', 'border': 1})
+                header_format = workbook.add_format({'bold': True, 'text_wrap': True, 'valign': 'center', 'align': 'center', 'fg_color': '#1e3c72', 'font_color': 'white', 'border': 1})
+                cell_format = workbook.add_format({'align': 'center', 'valign': 'center', 'border': 1})
+                highlight_format = workbook.add_format({'bg_color': '#d4edda', 'font_color': '#155724', 'bold': True, 'border': 1, 'align': 'center', 'valign': 'center'})
                 
-                # 1. ورقة الإحصائيات الشاملة
                 summary_data = df_sorted['التخصص النهائي'].value_counts().reset_index()
                 summary_data.columns = ['البيان (التخصص)', 'العدد الفعلي الموزع']
                 summary_data.to_excel(writer, sheet_name='إحصائيات التوزيع', index=False)
@@ -209,32 +256,23 @@ if admin_pass == "2027":
                 for col_num, value in enumerate(summary_data.columns.values):
                     worksheet_summary.write(0, col_num, value, header_format)
                 
-                # 2. أوراق العمل المستقلة لكل تخصص
                 specialties = df_sorted['التخصص النهائي'].unique()
                 for spec in specialties:
                     spec_df = df_sorted[df_sorted['التخصص النهائي'] == spec].copy()
-                    
-                    # إخفاء الأعمدة غير الضرورية وتجهيز التسلسل
                     cols_to_drop = ['التخصص النهائي', 'القسم']
                     spec_df = spec_df.drop(columns=[c for c in cols_to_drop if c in spec_df.columns])
                     spec_df.reset_index(drop=True, inplace=True)
-                    spec_df.index += 1 # تسلسل يبدأ من 1
+                    spec_df.index += 1
                     spec_df.index.name = 'م'
                     spec_df.reset_index(inplace=True)
                     
                     sheet_name = str(spec)[:31]
-                    # كتابة البيانات بدءاً من الصف الثاني لترك الصف الأول للعنوان الرئيسي
                     spec_df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=1)
                     worksheet = writer.sheets[sheet_name]
                     worksheet.right_to_left() 
                     
-                    # --- الإضافات الجمالية والعملية الجديدة ---
-                    
-                    # إضافة العنوان الرئيسي وتكبيره
                     worksheet.merge_range(0, 0, 0, len(spec_df.columns)-1, f'كشف توزيع الطلاب النهائي - تخصص ( {spec} )', title_format)
-                    worksheet.set_row(0, 35) # زيادة ارتفاع صف العنوان
-                    
-                    # ضبط عروض الأعمدة
+                    worksheet.set_row(0, 35)
                     worksheet.set_column('A:A', 5, cell_format)   
                     worksheet.set_column('B:B', 30, cell_format)  
                     worksheet.set_column('C:C', 18, cell_format)  
@@ -244,26 +282,20 @@ if admin_pass == "2027":
                     worksheet.set_column('G:G', 15, cell_format)  
                     worksheet.set_column('H:N', 16, cell_format)  
                     
-                    # تلوين ترويسة الجدول (أصبحت في الصف رقم 1 برمجياً)
                     for col_num, value in enumerate(spec_df.columns.values):
                         worksheet.write(1, col_num, value, header_format)
                         
-                    # تطبيق التظليل الأخضر التلقائي على الرغبة المتوافقة مع التخصص
-                    # الأعمدة من H (رقم 7) إلى N (رقم 13) هي أعمدة الرغبات
                     worksheet.conditional_format(2, 7, len(spec_df)+1, 13, {
                         'type': 'cell',
                         'criteria': '==',
                         'value': f'"{spec}"',
                         'format': highlight_format
                     })
-                    
-                    # تجميد الصفوف العلوية والفلاتر
-                    worksheet.freeze_panes(2, 0) # تجميد العنوان والترويسة
-                    worksheet.autofilter(1, 0, len(spec_df)+1, len(spec_df.columns)-1) # إضافة فلاتر للمراجعة
+                    worksheet.freeze_panes(2, 0)
+                    worksheet.autofilter(1, 0, len(spec_df)+1, len(spec_df.columns)-1)
                 
                 writer.close()
                 output.seek(0)
-                # -----------------------------------------------------------------------------
                 
                 st.success("✅ تمت عملية الفرز وإنشاء الكشوفات النهائية بنجاح!")
                 st.download_button(
@@ -276,7 +308,31 @@ if admin_pass == "2027":
                 st.error("⚠️ لا توجد بيانات للطلاب حتى الآن لإجراء التنسيق.")
     st.stop()
 
-# 3. عرض الشعارات الأكاديمية والعنوان الرئيسي
+# 3. قراءة قاعدة البيانات الأساسية لحساب الإحصائيات
+@st.cache_data
+def load_data():
+    try:
+        df = pd.read_excel("data.xlsx")
+        df = df.dropna(subset=['الاسم'])
+        return df
+    except FileNotFoundError:
+        return None
+
+df = load_data()
+
+total_students = len(df) if df is not None else 0
+registered_students = 0
+if os.path.exists("student_requests.xlsx"):
+    try:
+        df_reqs = pd.read_excel("student_requests.xlsx", dtype=str)
+        registered_students = len(df_reqs)
+    except:
+        pass
+
+remaining_students = total_students - registered_students
+if remaining_students < 0: remaining_students = 0
+
+# 4. عرض الشعارات الأكاديمية والعنوان الرئيسي
 col_logo1, col_title, col_logo2 = st.columns([1, 4, 1])
 
 with col_logo1:
@@ -294,7 +350,10 @@ with col_logo2:
     if os.path.exists("uni_logo.png"):
         st.image("uni_logo.png", use_container_width=True)
 
-# 4. صندوق التعليمات الفاخر
+# --- 5. حاوية للإحصائيات (تُحدث تلقائياً) ---
+dashboard_placeholder = st.empty()
+
+# 6. صندوق التعليمات الفاخر
 st.markdown("""
 <div class="instructions-box">
     <h3>📌 تعليمات هامة للتسجيل:</h3>
@@ -307,30 +366,6 @@ st.markdown("""
     </ul>
 </div>
 """, unsafe_allow_html=True)
-
-# 5. التوقيت الزمني للمنصة
-start_date = date(2026, 8, 8) 
-end_date = date(2026, 8, 22)
-today = date.today()
-
-if today < start_date:
-    st.warning("⏳ المنصة مغلقة حالياً. سيتم فتح باب التسجيل غداً الأحد 9-8-2026.")
-    st.stop()
-elif today > end_date:
-    st.error("❌ انتهى وقت التسجيل. تم إغلاق المنصة.")
-    st.stop()
-
-# 6. قراءة قاعدة البيانات الأساسية للإكسيل
-@st.cache_data
-def load_data():
-    try:
-        df = pd.read_excel("data.xlsx")
-        df = df.dropna(subset=['الاسم'])
-        return df
-    except FileNotFoundError:
-        return None
-
-df = load_data()
 
 if df is None:
     st.error("⚠️ ملف قاعدة البيانات (data.xlsx) غير موجود في المستودع.")
@@ -347,14 +382,15 @@ def get_dept(row):
 # 7. البحث الذكي المنسدل
 selected_name = st.selectbox("🔍 ابحث عن اسمك (اكتب أول حرفين من اسمك للبحث):", ["اختر اسم الطالب من هنا..."] + student_names)
 
+saved_record = None
+
 if selected_name and selected_name != "اختر اسم الطالب من هنا...":
     student_data = df[df['الاسم'] == selected_name].iloc[0]
     dept_name = get_dept(student_data)
     
-    saved_record = None
     if os.path.exists("student_requests.xlsx"):
-        df_reqs = pd.read_excel("student_requests.xlsx", dtype=str)
-        match = df_reqs[df_reqs['الاسم'] == selected_name]
+        df_reqs_search = pd.read_excel("student_requests.xlsx", dtype=str)
+        match = df_reqs_search[df_reqs_search['الاسم'] == selected_name]
         if not match.empty:
             saved_record = match.iloc[0]
 
@@ -456,19 +492,32 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 })
                 
                 if os.path.exists("student_requests.xlsx"):
-                    df_requests = pd.read_excel("student_requests.xlsx", dtype=str)
-                    df_requests = df_requests[df_requests['الاسم'] != selected_name]
-                    df_requests = pd.concat([df_requests, new_data], ignore_index=True)
+                    df_requests_save = pd.read_excel("student_requests.xlsx", dtype=str)
+                    df_requests_save = df_requests_save[df_requests_save['الاسم'] != selected_name]
+                    df_requests_save = pd.concat([df_requests_save, new_data], ignore_index=True)
                 else:
-                    df_requests = new_data
+                    df_requests_save = new_data
                     
-                df_requests.to_excel("student_requests.xlsx", index=False)
+                df_requests_save.to_excel("student_requests.xlsx", index=False)
+                
+                # تحديث فوري لعداد المسجلين بعد الحفظ
+                registered_students = len(df_requests_save)
+                remaining_students = total_students - registered_students
+                if remaining_students < 0: remaining_students = 0
                 
                 st.session_state['just_saved'] = True
                 st.balloons()
                 st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
 
+        # عرض الإيصال
         if saved_record is not None or st.session_state.get('just_saved', False):
+            # تسجيل الطباعة/إصدار الإيصال في الإحصائيات
+            if 'printed' not in st.session_state:
+                st.session_state['printed'] = True
+                stat_data = load_stats()
+                stat_data['prints'] += 1
+                save_stats(stat_data)
+                
             cur_r1 = r1 if 'r1' in locals() else saved_record.get('رغبة 1')
             cur_r2 = r2 if 'r2' in locals() else saved_record.get('رغبة 2')
             cur_r3 = r3 if 'r3' in locals() else saved_record.get('رغبة 3')
@@ -482,113 +531,21 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
             <html lang="ar" dir="rtl">
             <head>
                 <meta charset="UTF-8">
-                <title>{selected_name}</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-                    body {{
-                        font-family: 'Cairo', sans-serif;
-                        background-color: #fcfcfc;
-                        margin: 0;
-                        padding: 10px;
-                        direction: rtl;
-                        text-align: right;
-                    }}
-                    .receipt-box {{
-                        background: #ffffff;
-                        border: 2px solid #1e3c72;
-                        padding: 25px;
-                        border-radius: 15px;
-                        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-                    }}
-                    .header {{
-                        text-align: center;
-                        border-bottom: 2px solid #1e3c72;
-                        padding-bottom: 15px;
-                        margin-bottom: 15px;
-                    }}
-                    .header h2 {{
-                        color: #1e3c72;
-                        margin: 0;
-                        font-size: 20px;
-                    }}
-                    .header p {{
-                        color: #555;
-                        margin: 5px 0 0 0;
-                        font-size: 13px;
-                    }}
-                    .content p {{
-                        font-size: 14px;
-                        line-height: 1.8;
-                        margin: 6px 0;
-                        color: #333;
-                    }}
-                    ol {{
-                        padding-right: 20px;
-                        font-weight: bold;
-                        margin: 10px 0;
-                    }}
-                    ol li {{
-                        font-size: 14px;
-                        margin-bottom: 6px;
-                        color: #2c3e50;
-                    }}
-                    .footer {{
-                        text-align: center;
-                        margin-top: 20px;
-                        font-size: 11px;
-                        color: #777;
-                        border-top: 1px solid #eee;
-                        padding-top: 10px;
-                    }}
-                    .print-btn-container {{
-                        text-align: center;
-                        background: #f1f8e9;
-                        border: 1px solid #81c784;
-                        padding: 15px;
-                        border-radius: 10px;
-                        margin-top: 20px;
-                    }}
-                    .print-btn {{
-                        background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
-                        color: white;
-                        padding: 12px 25px;
-                        font-size: 17px;
-                        font-weight: bold;
-                        border: none;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-                        width: 100%;
-                        font-family: 'Cairo', sans-serif;
-                    }}
-                    .wa-btn {{
-                        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
-                        color: white;
-                        padding: 12px 25px;
-                        font-size: 17px;
-                        font-weight: bold;
-                        border: none;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);
-                        width: 100%;
-                        font-family: 'Cairo', sans-serif;
-                        margin-bottom: 12px;
-                    }}
-                    .btn-hover:hover {{
-                        opacity: 0.95;
-                        transform: translateY(-1px);
-                    }}
-                    @media print {{
-                        .print-btn-container {{
-                            display: none;
-                        }}
-                        .receipt-box {{
-                            border: none;
-                            box-shadow: none;
-                            padding: 0;
-                        }}
-                    }}
+                    body {{ font-family: 'Cairo', sans-serif; background-color: #fcfcfc; margin: 0; padding: 10px; direction: rtl; text-align: right; }}
+                    .receipt-box {{ background: #ffffff; border: 2px solid #1e3c72; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }}
+                    .header {{ text-align: center; border-bottom: 2px solid #1e3c72; padding-bottom: 15px; margin-bottom: 15px; }}
+                    .header h2 {{ color: #1e3c72; margin: 0; font-size: 20px; }}
+                    .header p {{ color: #555; margin: 5px 0 0 0; font-size: 13px; }}
+                    .content p {{ font-size: 14px; line-height: 1.8; margin: 6px 0; color: #333; }}
+                    ol {{ padding-right: 20px; font-weight: bold; margin: 10px 0; }}
+                    ol li {{ font-size: 14px; margin-bottom: 6px; color: #2c3e50; }}
+                    .footer {{ text-align: center; margin-top: 20px; font-size: 11px; color: #777; border-top: 1px solid #eee; padding-top: 10px; }}
+                    .print-btn-container {{ text-align: center; background: #f1f8e9; border: 1px solid #81c784; padding: 15px; border-radius: 10px; margin-top: 20px; }}
+                    .print-btn {{ background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 12px 25px; font-size: 17px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-family: 'Cairo', sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.15);}}
+                    .wa-btn {{ background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; padding: 12px 25px; font-size: 17px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-family: 'Cairo', sans-serif; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);}}
+                    @media print {{ .print-btn-container {{ display: none; }} .receipt-box {{ border: none; box-shadow: none; padding: 0; }} }}
                 </style>
             </head>
             <body>
@@ -622,18 +579,40 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 
                 <div class="print-btn-container">
                     <a href="https://chat.whatsapp.com/IvBUaPqw5RfExr4ZrEjjWV" target="_blank" style="text-decoration: none;">
-                        <button class="wa-btn btn-hover">
-                            💬 انضم الآن لجروب الواتساب الرسمي
-                        </button>
+                        <button class="wa-btn">💬 انضم الآن لجروب الواتساب الرسمي</button>
                     </a>
-                    <button class="print-btn btn-hover" onclick="window.print()">
-                        🖨️ طباعة أو حفظ الإيصال (PDF)
-                    </button>
-                    <p style="margin-top: 8px; color: #2e7d32; font-weight: 700; font-size: 14px; margin-bottom: 0;">
-                        📌 احفظ رغباتك وانضم للجروب لمتابعة أحدث التعليمات
-                    </p>
+                    <button class="print-btn" onclick="window.print()">🖨️ طباعة أو حفظ الإيصال (PDF)</button>
+                    <p style="margin-top: 8px; color: #2e7d32; font-weight: 700; font-size: 14px; margin-bottom: 0;">📌 احفظ رغباتك وانضم للجروب لمتابعة أحدث التعليمات</p>
                 </div>
             </body>
             </html>
             """
             components.html(receipt_html, height=650, scrolling=True)
+
+# --- 8. تحديث وعرض لوحة الإحصائيات (تُعرض في الأعلى) ---
+final_stats = load_stats()
+dashboard_html = f"""
+<div class="dashboard-container">
+    <div class="stat-card" style="border-color: #1e3c72;">
+        <div class="stat-icon">👥</div>
+        <h2 style="color: #1e3c72;">{final_stats['visitors']}</h2>
+        <p>إجمالي الزوار</p>
+    </div>
+    <div class="stat-card" style="border-color: #2e7d32;">
+        <div class="stat-icon">✅</div>
+        <h2 style="color: #2e7d32;">{registered_students}</h2>
+        <p>طالب سجل رغباته</p>
+    </div>
+    <div class="stat-card" style="border-color: #d35400;">
+        <div class="stat-icon">⏳</div>
+        <h2 style="color: #d35400;">{remaining_students}</h2>
+        <p>طالب متبقي (لم يسجل)</p>
+    </div>
+    <div class="stat-card" style="border-color: #00838f;">
+        <div class="stat-icon">🖨️</div>
+        <h2 style="color: #00838f;">{final_stats['prints']}</h2>
+        <p>إيصال تم إصداره</p>
+    </div>
+</div>
+"""
+dashboard_placeholder.markdown(dashboard_html, unsafe_allow_html=True)
