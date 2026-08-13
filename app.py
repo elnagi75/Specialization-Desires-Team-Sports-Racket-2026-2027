@@ -36,7 +36,7 @@ st.markdown("""
         text-align: center !important;
     }
     
-    /* تنسيق كروت الإحصائيات الفردية ليكون حجمها متطابق بالمليمتر ومحتواها بمنتصف المركز */
+    /* تنسيق كروت الإحصائيات الفردية */
     .stat-card {
         background: white;
         border-radius: 12px;
@@ -45,7 +45,7 @@ st.markdown("""
         border-bottom: 4px solid #1e3c72;
         transition: transform 0.3s ease;
         margin-bottom: 15px;
-        height: 165px; /* ارتفاع ثابت لتوحيد حجم كل الكروت */
+        height: 180px; /* زيادة الارتفاع قليلاً لاستيعاب التاريخ */
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -58,19 +58,19 @@ st.markdown("""
     }
     .stat-card h2 {
         margin: 0;
-        font-size: 40px; /* تكبير الرقم */
+        font-size: 40px; 
         font-weight: 900;
         color: #333;
         line-height: 1.1;
     }
     .stat-card p {
         margin: 8px 0 0 0;
-        font-size: 16px; /* تكبير النص */
+        font-size: 16px; 
         font-weight: 700;
         color: #666;
     }
     .stat-icon {
-        font-size: 30px; /* تكبير الأيقونة */
+        font-size: 30px; 
         margin-bottom: 5px;
     }
 
@@ -326,9 +326,9 @@ with col_logo2:
     if os.path.exists("uni_logo.png"):
         st.image("uni_logo.png", use_container_width=True)
 
-# --- 5. عرض لوحة الإحصائيات المحدثة (عكس الترتيب ليتوافق مع اللغة العربية) ---
-# ترتيب الأعمدة: اليسار للعداد، الوسط للمتبقي، اليمين للمسجلين
-col_timer, col_remaining, col_registered = st.columns(3)
+# --- 5. عرض لوحة الإحصائيات المحدثة (التحكم في عرض الأعمدة) ---
+# الترتيب: اليسار للعداد (وزن 2.2 ليصبح أعرض)، الوسط للمتبقي (وزن 1)، اليمين للمسجلين (وزن 1)
+col_timer, col_remaining, col_registered = st.columns([2.2, 1, 1])
 
 with col_registered:
     st.markdown(f"""
@@ -364,30 +364,30 @@ with col_timer:
             }}
             .stat-card {{
                 background: #fff5f5;
-                padding: 10px 5px;
+                padding: 12px 5px;
                 border-radius: 12px;
                 text-align: center;
                 box-shadow: 0 4px 10px rgba(0,0,0,0.08);
                 border-bottom: 4px solid #c0392b;
                 box-sizing: border-box;
-                height: 165px; /* نفس ارتفاع باقي المربعات بالمليمتر */
+                height: 180px; /* الارتفاع الموحد الجديد */
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
             }}
-            .stat-card p {{
+            .stat-card p.title {{
                 margin: 0 0 12px 0;
                 font-size: 16px;
                 font-weight: 700;
                 color: #c0392b;
             }}
-            /* عكس اتجاه العداد ليكون اليمين لليسار (يوم، ساعة، دقيقة، ثانية) */
+            /* العداد باتجاه من اليمين لليسار */
             .timer-wrapper {{
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                gap: 8px;
+                gap: 12px; /* مسافة أعرض بين المربعات بفضل المساحة الجديدة */
                 direction: rtl; 
             }}
             .time-box {{
@@ -397,33 +397,39 @@ with col_timer:
                 background-color: white;
                 border: 1px solid #ffcccc;
                 border-radius: 8px;
-                width: 50px; /* تكبير المربع */
-                padding: 6px 0;
+                width: 58px; /* المربعات أصبحت أعرض وأفخم */
+                padding: 8px 0;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             }}
             .number {{
-                font-size: 22px; /* تكبير خط الأرقام */
+                font-size: 24px;
                 font-weight: 900;
                 color: #c0392b;
                 line-height: 1;
             }}
             .label {{
-                font-size: 12px;
+                font-size: 13px;
                 font-weight: 700;
                 color: #7f8c8d;
-                margin-top: 4px;
+                margin-top: 5px;
             }}
             .colon {{
-                font-size: 22px;
+                font-size: 24px;
                 font-weight: 900;
                 color: #c0392b;
-                margin-bottom: 20px; /* ضبط التوسيط العمودي للنقطتين */
+                margin-bottom: 22px;
+            }}
+            .date-label {{
+                font-size: 14px;
+                font-weight: 700;
+                color: #7f8c8d;
+                margin-top: 12px;
             }}
         </style>
     </head>
     <body>
         <div class="stat-card">
-            <p>⏰ لغلق المنصة نهائياً</p>
+            <p class="title">⏰ لغلق المنصة نهائياً</p>
             <div class="timer-wrapper" id="timer-display">
                 <div class="time-box">
                     <span class="number" id="days">0</span>
@@ -445,6 +451,7 @@ with col_timer:
                     <span class="label">ثانية</span>
                 </div>
             </div>
+            <div class="date-label">الموعد النهائي: السبت 22 أغسطس 2026</div>
             <div id="expired-msg" style="display:none; color:#c0392b; font-weight:bold; font-size:18px; margin-top:10px;">
                 تم إغلاق المنصة
             </div>
@@ -458,6 +465,7 @@ with col_timer:
           if (distance < 0) {{
             clearInterval(x);
             document.getElementById("timer-display").style.display = "none";
+            document.querySelector(".date-label").style.display = "none";
             document.getElementById("expired-msg").style.display = "block";
             return;
           }}
@@ -478,7 +486,7 @@ with col_timer:
     </html>
     """
     # زيادة ارتفاع المكون ليتناسب مع الكروت الجانبية
-    components.html(timer_html, height=180)
+    components.html(timer_html, height=195)
 
 # 6. صندوق التعليمات الفاخر
 st.markdown("""
