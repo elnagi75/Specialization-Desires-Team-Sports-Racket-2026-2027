@@ -1,36 +1,12 @@
 import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
-from datetime import date
+from datetime import date, datetime
 import os
 import io
-import json
 
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية وألعاب المضرب", layout="centered", page_icon="🎓")
-
-# --- نظام الإحصائيات (تتبع الزوار والطباعة) ---
-STATS_FILE = "platform_stats.json"
-
-def load_stats():
-    if os.path.exists(STATS_FILE):
-        try:
-            with open(STATS_FILE, 'r') as f:
-                return json.load(f)
-        except:
-            pass
-    return {"visitors": 0, "prints": 0}
-
-def save_stats(stats):
-    with open(STATS_FILE, 'w') as f:
-        json.dump(stats, f)
-
-# تسجيل زيارة جديدة (مرة واحدة لكل جلسة)
-if 'visited' not in st.session_state:
-    st.session_state['visited'] = True
-    current_stats = load_stats()
-    current_stats['visitors'] += 1
-    save_stats(current_stats)
 
 # تنسيقات CSS العامة للمنصة وللوحة الإحصائيات
 st.markdown("""
@@ -157,7 +133,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. بوابة دخول الإدارة في القائمة الجانبية (المحرك الشامل)
+# 2. بوابة دخول الإدارة
 st.sidebar.title("👨‍💻 لوحة الكنترول والإدارة")
 admin_pass = st.sidebar.text_input("أدخل كلمة المرور:", type="password")
 
@@ -308,7 +284,7 @@ if admin_pass == "2027":
                 st.error("⚠️ لا توجد بيانات للطلاب حتى الآن لإجراء التنسيق.")
     st.stop()
 
-# 3. قراءة قاعدة البيانات الأساسية لحساب الإحصائيات
+# 3. قراءة قاعدة البيانات لحساب الإحصائيات (المسجلين والمتبقين)
 @st.cache_data
 def load_data():
     try:
@@ -350,8 +326,55 @@ with col_logo2:
     if os.path.exists("uni_logo.png"):
         st.image("uni_logo.png", use_container_width=True)
 
-# --- 5. حاوية للإحصائيات (تُحدث تلقائياً) ---
-dashboard_placeholder = st.empty()
+# --- 5. عرض لوحة الإحصائيات (الكروت الثلاثة) + العداد الحي بالـ JavaScript ---
+# سيتم إغلاق المنصة يوم 22-8-2026 الساعة 23:59:59 بتوقيت القاهرة
+countdown_html = f"""
+<div class="dashboard-container">
+    <div class="stat-card" style="border-color: #2e7d32;">
+        <div class="stat-icon">✅</div>
+        <h2 style="color: #2e7d32;">{registered_students}</h2>
+        <p>طالب أتم التسجيل</p>
+    </div>
+    <div class="stat-card" style="border-color: #d35400;">
+        <div class="stat-icon">⏳</div>
+        <h2 style="color: #d35400;">{remaining_students}</h2>
+        <p>طالب متبقي</p>
+    </div>
+    <div class="stat-card" style="border-color: #c0392b; background-color: #fff5f5;">
+        <div class="stat-icon">⏰</div>
+        <h2 id="countdown" style="color: #c0392b; font-size: 24px; direction: ltr;">جاري الحساب...</h2>
+        <p style="color: #c0392b;">لإغلاق المنصة نهائياً</p>
+    </div>
+</div>
+
+<script>
+// تحديد موعد إغلاق المنصة
+var countDownDate = new Date("Aug 22, 2026 23:59:59").getTime();
+
+// تحديث العداد كل ثانية
+var x = setInterval(function() {{
+  var now = new Date().getTime();
+  var distance = countDownDate - now;
+
+  // الحسابات الزمنية
+  var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+  var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+  // عرض النتيجة مع التنسيق (أيام : ساعات : دقائق : ثواني)
+  document.getElementById("countdown").innerHTML = days + "يوم : " + hours + "س : "
+  + minutes + "د : " + seconds + "ث ";
+
+  // في حال انتهاء الوقت
+  if (distance < 0) {{
+    clearInterval(x);
+    document.getElementById("countdown").innerHTML = "تم إغلاق المنصة";
+  }}
+}}, 1000);
+</script>
+"""
+components.html(countdown_html, height=140)
 
 # 6. صندوق التعليمات الفاخر
 st.markdown("""
@@ -367,6 +390,18 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# 7. التوقيت الزمني للمنصة وإغلاقها
+start_date = date(2026, 8, 8) 
+end_date = date(2026, 8, 22)
+today = date.today()
+
+if today < start_date:
+    st.warning("⏳ المنصة مغلقة حالياً. سيتم فتح باب التسجيل غداً الأحد 9-8-2026.")
+    st.stop()
+elif today > end_date:
+    st.error("❌ انتهى وقت التسجيل. تم إغلاق المنصة رسمياً.")
+    st.stop()
+
 if df is None:
     st.error("⚠️ ملف قاعدة البيانات (data.xlsx) غير موجود في المستودع.")
     st.stop()
@@ -379,7 +414,7 @@ def get_dept(row):
             return str(row[col])
     return "غير محدد"
 
-# 7. البحث الذكي المنسدل
+# 8. البحث الذكي المنسدل
 selected_name = st.selectbox("🔍 ابحث عن اسمك (اكتب أول حرفين من اسمك للبحث):", ["اختر اسم الطالب من هنا..."] + student_names)
 
 saved_record = None
@@ -500,24 +535,11 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                     
                 df_requests_save.to_excel("student_requests.xlsx", index=False)
                 
-                # تحديث فوري لعداد المسجلين بعد الحفظ
-                registered_students = len(df_requests_save)
-                remaining_students = total_students - registered_students
-                if remaining_students < 0: remaining_students = 0
-                
                 st.session_state['just_saved'] = True
-                st.balloons()
-                st.success(f"🎉 مبروك يا {selected_name}! تم حفظ وتأكيد رغباتك السبعة بنجاح.")
+                st.rerun()
 
         # عرض الإيصال
         if saved_record is not None or st.session_state.get('just_saved', False):
-            # تسجيل الطباعة/إصدار الإيصال في الإحصائيات
-            if 'printed' not in st.session_state:
-                st.session_state['printed'] = True
-                stat_data = load_stats()
-                stat_data['prints'] += 1
-                save_stats(stat_data)
-                
             cur_r1 = r1 if 'r1' in locals() else saved_record.get('رغبة 1')
             cur_r2 = r2 if 'r2' in locals() else saved_record.get('رغبة 2')
             cur_r3 = r3 if 'r3' in locals() else saved_record.get('رغبة 3')
@@ -588,31 +610,3 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
             </html>
             """
             components.html(receipt_html, height=650, scrolling=True)
-
-# --- 8. تحديث وعرض لوحة الإحصائيات (تُعرض في الأعلى) ---
-final_stats = load_stats()
-dashboard_html = f"""
-<div class="dashboard-container">
-    <div class="stat-card" style="border-color: #1e3c72;">
-        <div class="stat-icon">👥</div>
-        <h2 style="color: #1e3c72;">{final_stats['visitors']}</h2>
-        <p>إجمالي الزوار</p>
-    </div>
-    <div class="stat-card" style="border-color: #2e7d32;">
-        <div class="stat-icon">✅</div>
-        <h2 style="color: #2e7d32;">{registered_students}</h2>
-        <p>طالب سجل رغباته</p>
-    </div>
-    <div class="stat-card" style="border-color: #d35400;">
-        <div class="stat-icon">⏳</div>
-        <h2 style="color: #d35400;">{remaining_students}</h2>
-        <p>طالب متبقي (لم يسجل)</p>
-    </div>
-    <div class="stat-card" style="border-color: #00838f;">
-        <div class="stat-icon">🖨️</div>
-        <h2 style="color: #00838f;">{final_stats['prints']}</h2>
-        <p>إيصال تم إصداره</p>
-    </div>
-</div>
-"""
-dashboard_placeholder.markdown(dashboard_html, unsafe_allow_html=True)
