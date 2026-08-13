@@ -1,14 +1,14 @@
 import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
-from datetime import date, datetime
+from datetime import date
 import os
 import io
 
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية وألعاب المضرب", layout="centered", page_icon="🎓")
 
-# تنسيقات CSS العامة للمنصة وللوحة الإحصائيات
+# تنسيقات CSS العامة للمنصة 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
@@ -36,16 +36,8 @@ st.markdown("""
         text-align: center !important;
     }
     
-    /* تنسيق كروت الإحصائيات الأنيقة */
-    .dashboard-container {
-        display: flex;
-        justify-content: space-between;
-        gap: 15px;
-        margin-bottom: 30px;
-        direction: rtl;
-    }
+    /* تنسيق كروت الإحصائيات الفردية */
     .stat-card {
-        flex: 1;
         background: white;
         padding: 15px 10px;
         border-radius: 12px;
@@ -53,13 +45,14 @@ st.markdown("""
         box-shadow: 0 4px 10px rgba(0,0,0,0.08);
         border-bottom: 4px solid #1e3c72;
         transition: transform 0.3s ease;
+        margin-bottom: 15px;
     }
     .stat-card:hover {
         transform: translateY(-5px);
     }
     .stat-card h2 {
         margin: 0;
-        font-size: 28px;
+        font-size: 26px;
         font-weight: 900;
         color: #333;
     }
@@ -284,7 +277,7 @@ if admin_pass == "2027":
                 st.error("⚠️ لا توجد بيانات للطلاب حتى الآن لإجراء التنسيق.")
     st.stop()
 
-# 3. قراءة قاعدة البيانات لحساب الإحصائيات (المسجلين والمتبقين)
+# 3. قراءة قاعدة البيانات لحساب الإحصائيات 
 @st.cache_data
 def load_data():
     try:
@@ -326,55 +319,97 @@ with col_logo2:
     if os.path.exists("uni_logo.png"):
         st.image("uni_logo.png", use_container_width=True)
 
-# --- 5. عرض لوحة الإحصائيات (الكروت الثلاثة) + العداد الحي بالـ JavaScript ---
-# سيتم إغلاق المنصة يوم 22-8-2026 الساعة 23:59:59 بتوقيت القاهرة
-countdown_html = f"""
-<div class="dashboard-container">
-    <div class="stat-card" style="border-color: #2e7d32;">
+# --- 5. عرض لوحة الإحصائيات (بنظام الأعمدة لمنع الأخطاء) ---
+col_stat1, col_stat2, col_stat3 = st.columns(3)
+
+with col_stat1:
+    st.markdown(f"""
+    <div class="stat-card" style="border-bottom-color: #2e7d32;">
         <div class="stat-icon">✅</div>
         <h2 style="color: #2e7d32;">{registered_students}</h2>
         <p>طالب أتم التسجيل</p>
     </div>
-    <div class="stat-card" style="border-color: #d35400;">
+    """, unsafe_allow_html=True)
+
+with col_stat2:
+    st.markdown(f"""
+    <div class="stat-card" style="border-bottom-color: #d35400;">
         <div class="stat-icon">⏳</div>
         <h2 style="color: #d35400;">{remaining_students}</h2>
         <p>طالب متبقي</p>
     </div>
-    <div class="stat-card" style="border-color: #c0392b; background-color: #fff5f5;">
-        <div class="stat-icon">⏰</div>
-        <h2 id="countdown" style="color: #c0392b; font-size: 24px; direction: ltr;">جاري الحساب...</h2>
-        <p style="color: #c0392b;">لإغلاق المنصة نهائياً</p>
-    </div>
-</div>
+    """, unsafe_allow_html=True)
 
-<script>
-// تحديد موعد إغلاق المنصة
-var countDownDate = new Date("Aug 22, 2026 23:59:59").getTime();
-
-// تحديث العداد كل ثانية
-var x = setInterval(function() {{
-  var now = new Date().getTime();
-  var distance = countDownDate - now;
-
-  // الحسابات الزمنية
-  var days = Math.floor(distance / (1000 * 60 * 60 * 24));
-  var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-  var seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-  // عرض النتيجة مع التنسيق (أيام : ساعات : دقائق : ثواني)
-  document.getElementById("countdown").innerHTML = days + "يوم : " + hours + "س : "
-  + minutes + "د : " + seconds + "ث ";
-
-  // في حال انتهاء الوقت
-  if (distance < 0) {{
-    clearInterval(x);
-    document.getElementById("countdown").innerHTML = "تم إغلاق المنصة";
-  }}
-}}, 1000);
-</script>
-"""
-components.html(countdown_html, height=140)
+with col_stat3:
+    timer_html = f"""
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+            body {{
+                font-family: 'Cairo', sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: transparent;
+                overflow: hidden;
+            }}
+            .stat-card {{
+                background: #fff5f5;
+                padding: 12px 10px;
+                border-radius: 12px;
+                text-align: center;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+                border-bottom: 4px solid #c0392b;
+                box-sizing: border-box;
+            }}
+            .stat-card h2 {{
+                margin: 0;
+                font-size: 19px;
+                font-weight: 900;
+                color: #c0392b;
+                direction: ltr;
+            }}
+            .stat-card p {{
+                margin: 5px 0 0 0;
+                font-size: 14px;
+                font-weight: 700;
+                color: #c0392b;
+            }}
+            .stat-icon {{
+                font-size: 24px;
+                margin-bottom: 5px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="stat-card">
+            <div class="stat-icon">⏰</div>
+            <h2 id="countdown">جاري الحساب...</h2>
+            <p>لإغلاق المنصة نهائياً</p>
+        </div>
+        <script>
+        var countDownDate = new Date("Aug 22, 2026 23:59:59").getTime();
+        var x = setInterval(function() {{
+          var now = new Date().getTime();
+          var distance = countDownDate - now;
+          var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+          var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+          
+          document.getElementById("countdown").innerHTML = days + "يوم : " + hours + "س : " + minutes + "د : " + seconds + "ث ";
+          
+          if (distance < 0) {{
+            clearInterval(x);
+            document.getElementById("countdown").innerHTML = "تم إغلاق المنصة";
+          }}
+        }}, 1000);
+        </script>
+    </body>
+    </html>
+    """
+    components.html(timer_html, height=130)
 
 # 6. صندوق التعليمات الفاخر
 st.markdown("""
@@ -536,6 +571,8 @@ if selected_name and selected_name != "اختر اسم الطالب من هنا.
                 df_requests_save.to_excel("student_requests.xlsx", index=False)
                 
                 st.session_state['just_saved'] = True
+                
+                # تحديث الصفحة برمجياً لضبط العدادات فوراً
                 st.rerun()
 
         # عرض الإيصال
