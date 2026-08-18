@@ -5,135 +5,52 @@ from datetime import date
 import os
 import io
 
-# 1. إعدادات الصفحة
+# --- محرك المزامنة السحابية مع GitHub ---
+def push_to_github(filepath):
+    try:
+        if "GITHUB_TOKEN" in st.secrets and "GITHUB_REPO" in st.secrets:
+            from github import Github
+            g = Github(st.secrets["GITHUB_TOKEN"])
+            repo = g.get_repo(st.secrets["GITHUB_REPO"])
+            
+            with open(filepath, 'rb') as f:
+                content = f.read()
+            
+            try:
+                # محاولة تحديث الملف إذا كان موجوداً
+                file_contents = repo.get_contents(filepath)
+                repo.update_file(file_contents.path, f"Auto-sync {filepath} from Streamlit", content, file_contents.sha)
+            except:
+                # إنشاء الملف إذا لم يكن موجوداً
+                repo.create_file(filepath, f"Auto-create {filepath} from Streamlit", content)
+    except Exception as e:
+        print(f"GitHub Sync Error: {e}") 
+
+# --- 1. إعدادات الصفحة ---
 st.set_page_config(page_title="منصة تسجيل الرغبات - الرياضات الجماعية وألعاب المضرب", layout="centered", page_icon="🎓")
 
-# تنسيقات CSS العامة للمنصة 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Cairo', sans-serif;
-    }
-    
-    .main-title {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        padding: 25px 20px;
-        border-radius: 15px;
-        text-align: center !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        margin-bottom: 25px;
-    }
-    
-    .main-title h1 {
-        font-size: 22px !important;
-        font-weight: 900 !important;
-        color: #ffffff !important;
-        line-height: 1.5;
-        margin: 0 !important;
-        text-align: center !important;
-    }
-    
-    /* تنسيق كروت الإحصائيات الفردية */
-    .stat-card {
-        background: white;
-        border-radius: 12px;
-        text-align: center;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-        border-bottom: 4px solid #1e3c72;
-        transition: transform 0.3s ease;
-        margin-bottom: 15px;
-        height: 180px; /* زيادة الارتفاع قليلاً لاستيعاب التاريخ */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 10px;
-        box-sizing: border-box;
-    }
-    .stat-card:hover {
-        transform: translateY(-5px);
-    }
-    .stat-card h2 {
-        margin: 0;
-        font-size: 40px; 
-        font-weight: 900;
-        color: #333;
-        line-height: 1.1;
-    }
-    .stat-card p {
-        margin: 8px 0 0 0;
-        font-size: 16px; 
-        font-weight: 700;
-        color: #666;
-    }
-    .stat-icon {
-        font-size: 30px; 
-        margin-bottom: 5px;
-    }
-
-    .stMarkdown, p, li, label, .stTextInput, .stSelectbox {
-        direction: RTL !important;
-        text-align: right !important;
-    }
-
-    .instructions-box {
-        background-color: #f8f9fa;
-        border-right: 6px solid #1e3c72;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        margin-bottom: 25px;
-        direction: RTL !important;
-        text-align: right !important;
-    }
-    
-    .instructions-box h3 {
-        color: #1e3c72;
-        font-weight: 700;
-        margin-top: 0;
-        text-align: right !important;
-    }
-    
-    .instructions-box li {
-        font-size: 15px;
-        color: #333;
-        margin-bottom: 8px;
-        font-weight: 600;
-        text-align: right !important;
-    }
-
-    .stSelectbox label, .stTextInput label {
-        font-size: 17px !important;
-        font-weight: 700 !important;
-        color: #2c3e50 !important;
-        text-align: right !important;
-    }
-    
-    .stButton>button {
-        width: 100%;
-        background: linear-gradient(135deg, #8B0000 0%, #B22222 100%) !important;
-        color: white !important;
-        font-size: 19px !important;
-        font-weight: 700 !important;
-        padding: 14px !important;
-        border-radius: 10px !important;
-        border: none !important;
-        box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3) !important;
-        transition: 0.3s;
-    }
-    
-    .stButton>button:hover {
-        background: linear-gradient(135deg, #A52A2A 0%, #DC143C 100%) !important;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(139, 0, 0, 0.4) !important;
-    }
+    html, body, [class*="css"] { font-family: 'Cairo', sans-serif; }
+    .main-title { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 25px 20px; border-radius: 15px; text-align: center !important; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 25px; }
+    .main-title h1 { font-size: 22px !important; font-weight: 900 !important; color: #ffffff !important; line-height: 1.5; margin: 0 !important; text-align: center !important; }
+    .stat-card { background: white; border-radius: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.08); border-bottom: 4px solid #1e3c72; transition: transform 0.3s ease; margin-bottom: 15px; height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
+    .stat-card:hover { transform: translateY(-5px); }
+    .stat-card h2 { margin: 0; font-size: 40px; font-weight: 900; color: #333; line-height: 1.1; }
+    .stat-card p { margin: 8px 0 0 0; font-size: 16px; font-weight: 700; color: #666; }
+    .stat-icon { font-size: 30px; margin-bottom: 5px; }
+    .stMarkdown, p, li, label, .stTextInput, .stSelectbox { direction: RTL !important; text-align: right !important; }
+    .instructions-box { background-color: #f8f9fa; border-right: 6px solid #1e3c72; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; direction: RTL !important; text-align: right !important; }
+    .instructions-box h3 { color: #1e3c72; font-weight: 700; margin-top: 0; text-align: right !important; }
+    .instructions-box li { font-size: 15px; color: #333; margin-bottom: 8px; font-weight: 600; text-align: right !important; }
+    .stSelectbox label, .stTextInput label { font-size: 17px !important; font-weight: 700 !important; color: #2c3e50 !important; text-align: right !important; }
+    .stButton>button { width: 100%; background: linear-gradient(135deg, #8B0000 0%, #B22222 100%) !important; color: white !important; font-size: 19px !important; font-weight: 700 !important; padding: 14px !important; border-radius: 10px !important; border: none !important; box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3) !important; transition: 0.3s; }
+    .stButton>button:hover { background: linear-gradient(135deg, #A52A2A 0%, #DC143C 100%) !important; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(139, 0, 0, 0.4) !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# 2. بوابة دخول الإدارة
+# --- 2. لوحة الكنترول ---
 st.sidebar.title("👨‍💻 لوحة الكنترول والإدارة")
 admin_pass = st.sidebar.text_input("أدخل كلمة المرور:", type="password")
 
@@ -148,33 +65,22 @@ if admin_pass == "2027":
         if os.path.exists("student_requests.xlsx"):
             df_requests = pd.read_excel("student_requests.xlsx", dtype=str)
             st.dataframe(df_requests)
-            
             with open("student_requests.xlsx", "rb") as f:
-                st.download_button(
-                    label="📥 تحميل كشف الرغبات الخام (Excel)",
-                    data=f,
-                    file_name='student_requests_raw.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                )
+                st.download_button(label="📥 تحميل كشف الرغبات الخام (Excel)", data=f, file_name='student_requests_raw.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         else:
             st.warning("لم يقم أي طالب بالتسجيل حتى الآن.")
             
     with tab2:
         st.markdown("### 🎯 إعداد السعة الاستيعابية للتخصصات")
-        st.write("أدخل العدد المطلوب لكل تخصص لبدء الفرز والتوزيع وإخراج الكشوفات النهائية المنسقة:")
-        
         col1, col2, col3, col4 = st.columns(4)
         cap_football = col1.number_input("كرة القدم", min_value=0, value=60)
         cap_handball = col2.number_input("كرة اليد", min_value=0, value=50)
         cap_volleyball = col3.number_input("الكرة الطائرة", min_value=0, value=50)
         cap_basketball = col4.number_input("كرة السلة", min_value=0, value=45)
-        
         col5, col6, col7, col8 = st.columns(4)
         cap_hockey = col5.number_input("الهوكي", min_value=0, value=40)
         cap_tennis = col6.number_input("التنس الأرضي", min_value=0, value=45)
         cap_squash = col7.number_input("اسكواش", min_value=0, value=40)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
         
         if st.button("⚙️ إجراء التنسيق واستخراج كشوفات الكنترول"):
             if os.path.exists("student_requests.xlsx"):
@@ -182,16 +88,7 @@ if admin_pass == "2027":
                 df_req['المجموع'] = pd.to_numeric(df_req['المجموع'], errors='coerce').fillna(0)
                 df_sorted = df_req.sort_values(by='المجموع', ascending=False).reset_index(drop=True)
                 
-                capacities = {
-                    'كرة القدم': cap_football,
-                    'كرة اليد': cap_handball,
-                    'الكرة الطائرة': cap_volleyball,
-                    'كرة السلة': cap_basketball,
-                    'الهوكي': cap_hockey,
-                    'التنس الأرضي': cap_tennis,
-                    'اسكواش': cap_squash
-                }
-                
+                capacities = {'كرة القدم': cap_football, 'كرة اليد': cap_handball, 'الكرة الطائرة': cap_volleyball, 'كرة السلة': cap_basketball, 'الهوكي': cap_hockey, 'التنس الأرضي': cap_tennis, 'اسكواش': cap_squash}
                 allocations = []
                 current_capacity = {k: 0 for k in capacities.keys()}
                 
@@ -199,17 +96,13 @@ if admin_pass == "2027":
                     assigned = False
                     for i in range(1, 8):
                         choice = row.get(f'رغبة {i}')
-                        if pd.isna(choice):
-                            continue
-                        
+                        if pd.isna(choice): continue
                         if choice in current_capacity and current_capacity[choice] < capacities[choice]:
                             allocations.append(choice)
                             current_capacity[choice] += 1
                             assigned = True
                             break
-                            
-                    if not assigned:
-                        allocations.append("غير موزع - اكتملت السعة")
+                    if not assigned: allocations.append("غير موزع - اكتملت السعة")
                 
                 df_sorted['التخصص النهائي'] = allocations
                 
@@ -246,7 +139,6 @@ if admin_pass == "2027":
                     spec_df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=1)
                     worksheet = writer.sheets[sheet_name]
                     worksheet.right_to_left() 
-                    
                     worksheet.merge_range(0, 0, 0, len(spec_df.columns)-1, f'كشف توزيع الطلاب النهائي - تخصص ( {spec} )', title_format)
                     worksheet.set_row(0, 35)
                     worksheet.set_column('A:A', 5, cell_format)   
@@ -257,238 +149,84 @@ if admin_pass == "2027":
                     worksheet.set_column('F:F', 10, cell_format)  
                     worksheet.set_column('G:G', 15, cell_format)  
                     worksheet.set_column('H:N', 16, cell_format)  
-                    
-                    for col_num, value in enumerate(spec_df.columns.values):
-                        worksheet.write(1, col_num, value, header_format)
-                        
-                    worksheet.conditional_format(2, 7, len(spec_df)+1, 13, {
-                        'type': 'cell',
-                        'criteria': '==',
-                        'value': f'"{spec}"',
-                        'format': highlight_format
-                    })
+                    for col_num, value in enumerate(spec_df.columns.values): worksheet.write(1, col_num, value, header_format)
+                    worksheet.conditional_format(2, 7, len(spec_df)+1, 13, {'type': 'cell', 'criteria': '==', 'value': f'"{spec}"', 'format': highlight_format})
                     worksheet.freeze_panes(2, 0)
                     worksheet.autofilter(1, 0, len(spec_df)+1, len(spec_df.columns)-1)
                 
                 writer.close()
                 output.seek(0)
-                
                 st.success("✅ تمت عملية الفرز وإنشاء الكشوفات النهائية بنجاح!")
-                st.download_button(
-                    label="📥 تحميل كشوفات الكنترول النهائية (ملف Excel منسق)",
-                    data=output,
-                    file_name='Official_Control_Distribution.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                )
+                st.download_button(label="📥 تحميل كشوفات الكنترول النهائية", data=output, file_name='Official_Control_Distribution.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             else:
-                st.error("⚠️ لا توجد بيانات للطلاب حتى الآن لإجراء التنسيق.")
+                st.error("⚠️ لا توجد بيانات لإجراء التنسيق.")
     st.stop()
 
-# 3. قراءة قاعدة البيانات لحساب الإحصائيات 
+# --- 3. قراءة البيانات وحساب الإحصائيات ---
 @st.cache_data
 def load_data():
     try:
         df = pd.read_excel("data.xlsx")
-        df = df.dropna(subset=['الاسم'])
-        return df
-    except FileNotFoundError:
+        return df.dropna(subset=['الاسم'])
+    except:
         return None
 
 df = load_data()
-
 total_students = len(df) if df is not None else 0
 registered_students = 0
+
 if os.path.exists("student_requests.xlsx"):
     try:
         df_reqs = pd.read_excel("student_requests.xlsx", dtype=str)
         registered_students = len(df_reqs)
-    except:
-        pass
+    except: pass
 
-remaining_students = total_students - registered_students
-if remaining_students < 0: remaining_students = 0
+remaining_students = max(0, total_students - registered_students)
 
-# 4. عرض الشعارات الأكاديمية والعنوان الرئيسي
+# --- 4. واجهة المنصة الأساسية ---
 col_logo1, col_title, col_logo2 = st.columns([1, 4, 1])
-
 with col_logo1:
-    if os.path.exists("fac_logo.png"):
-        st.image("fac_logo.png", use_container_width=True)
-
+    if os.path.exists("fac_logo.png"): st.image("fac_logo.png", use_container_width=True)
 with col_title:
-    st.markdown("""
-        <div class="main-title">
-            <h1>قسم الرياضة الجماعية وألعاب المضرب - كلية علوم الرياضة - جامعة المنيا (2026 - 2027)</h1>
-        </div>
-    """, unsafe_allow_html=True)
-
+    st.markdown("<div class='main-title'><h1>قسم الرياضة الجماعية وألعاب المضرب - كلية علوم الرياضة - جامعة المنيا (2026 - 2027)</h1></div>", unsafe_allow_html=True)
 with col_logo2:
-    if os.path.exists("uni_logo.png"):
-        st.image("uni_logo.png", use_container_width=True)
+    if os.path.exists("uni_logo.png"): st.image("uni_logo.png", use_container_width=True)
 
-# --- 5. عرض لوحة الإحصائيات المحدثة (التحكم في عرض الأعمدة) ---
-# الترتيب: اليسار للعداد (وزن 2.2 ليصبح أعرض)، الوسط للمتبقي (وزن 1)، اليمين للمسجلين (وزن 1)
 col_timer, col_remaining, col_registered = st.columns([2.2, 1, 1])
-
 with col_registered:
-    st.markdown(f"""
-    <div class="stat-card" style="border-bottom-color: #2e7d32;">
-        <div class="stat-icon">✅</div>
-        <h2 style="color: #2e7d32;">{registered_students}</h2>
-        <p>طالب أتم التسجيل</p>
-    </div>
-    """, unsafe_allow_html=True)
-
+    st.markdown(f"<div class='stat-card' style='border-bottom-color: #2e7d32;'><div class='stat-icon'>✅</div><h2 style='color: #2e7d32;'>{registered_students}</h2><p>طالب أتم التسجيل</p></div>", unsafe_allow_html=True)
 with col_remaining:
-    st.markdown(f"""
-    <div class="stat-card" style="border-bottom-color: #d35400;">
-        <div class="stat-icon">⏳</div>
-        <h2 style="color: #d35400;">{remaining_students}</h2>
-        <p>طالب متبقي</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"<div class='stat-card' style='border-bottom-color: #d35400;'><div class='stat-icon'>⏳</div><h2 style='color: #d35400;'>{remaining_students}</h2><p>طالب متبقي</p></div>", unsafe_allow_html=True)
 
 with col_timer:
-    timer_html = f"""
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-            body {{
-                font-family: 'Cairo', sans-serif;
-                margin: 0;
-                padding: 0;
-                background-color: transparent;
-                overflow: hidden;
-            }}
-            .stat-card {{
-                background: #fff5f5;
-                padding: 12px 5px;
-                border-radius: 12px;
-                text-align: center;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-                border-bottom: 4px solid #c0392b;
-                box-sizing: border-box;
-                height: 180px; /* الارتفاع الموحد الجديد */
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-            }}
-            .stat-card p.title {{
-                margin: 0 0 12px 0;
-                font-size: 16px;
-                font-weight: 700;
-                color: #c0392b;
-            }}
-            /* العداد باتجاه من اليمين لليسار */
-            .timer-wrapper {{
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                gap: 12px; /* مسافة أعرض بين المربعات بفضل المساحة الجديدة */
-                direction: rtl; 
-            }}
-            .time-box {{
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                background-color: white;
-                border: 1px solid #ffcccc;
-                border-radius: 8px;
-                width: 58px; /* المربعات أصبحت أعرض وأفخم */
-                padding: 8px 0;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }}
-            .number {{
-                font-size: 24px;
-                font-weight: 900;
-                color: #c0392b;
-                line-height: 1;
-            }}
-            .label {{
-                font-size: 13px;
-                font-weight: 700;
-                color: #7f8c8d;
-                margin-top: 5px;
-            }}
-            .colon {{
-                font-size: 24px;
-                font-weight: 900;
-                color: #c0392b;
-                margin-bottom: 22px;
-            }}
-            .date-label {{
-                font-size: 14px;
-                font-weight: 700;
-                color: #7f8c8d;
-                margin-top: 12px;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="stat-card">
-            <p class="title">⏰ لغلق المنصة نهائياً</p>
-            <div class="timer-wrapper" id="timer-display">
-                <div class="time-box">
-                    <span class="number" id="days">0</span>
-                    <span class="label">يوم</span>
-                </div>
-                <span class="colon">:</span>
-                <div class="time-box">
-                    <span class="number" id="hours">0</span>
-                    <span class="label">ساعة</span>
-                </div>
-                <span class="colon">:</span>
-                <div class="time-box">
-                    <span class="number" id="minutes">0</span>
-                    <span class="label">دقيقة</span>
-                </div>
-                <span class="colon">:</span>
-                <div class="time-box">
-                    <span class="number" id="seconds">0</span>
-                    <span class="label">ثانية</span>
-                </div>
-            </div>
-            <div class="date-label">الموعد النهائي: السبت 22 أغسطس 2026</div>
-            <div id="expired-msg" style="display:none; color:#c0392b; font-weight:bold; font-size:18px; margin-top:10px;">
-                تم إغلاق المنصة
-            </div>
+    timer_html = """
+    <div dir="rtl" style="background:#fff5f5; padding:12px; border-radius:12px; text-align:center; border-bottom:4px solid #c0392b; height:180px; display:flex; flex-direction:column; justify-content:center;">
+        <p style="margin:0 0 10px 0; font-weight:bold; color:#c0392b;">⏰ لغلق المنصة نهائياً</p>
+        <div style="display:flex; justify-content:center; gap:10px;">
+            <div style="background:white; border:1px solid #ffcccc; border-radius:8px; padding:5px; width:55px;"><div id="d" style="font-size:24px; font-weight:900; color:#c0392b;">0</div><div style="font-size:12px; color:#7f8c8d;">يوم</div></div>
+            <div style="font-size:24px; font-weight:900; color:#c0392b;">:</div>
+            <div style="background:white; border:1px solid #ffcccc; border-radius:8px; padding:5px; width:55px;"><div id="h" style="font-size:24px; font-weight:900; color:#c0392b;">0</div><div style="font-size:12px; color:#7f8c8d;">ساعة</div></div>
+            <div style="font-size:24px; font-weight:900; color:#c0392b;">:</div>
+            <div style="background:white; border:1px solid #ffcccc; border-radius:8px; padding:5px; width:55px;"><div id="m" style="font-size:24px; font-weight:900; color:#c0392b;">0</div><div style="font-size:12px; color:#7f8c8d;">دقيقة</div></div>
+            <div style="font-size:24px; font-weight:900; color:#c0392b;">:</div>
+            <div style="background:white; border:1px solid #ffcccc; border-radius:8px; padding:5px; width:55px;"><div id="s" style="font-size:24px; font-weight:900; color:#c0392b;">0</div><div style="font-size:12px; color:#7f8c8d;">ثانية</div></div>
         </div>
-        <script>
-        var countDownDate = new Date("Aug 22, 2026 23:59:59").getTime();
-        var x = setInterval(function() {{
-          var now = new Date().getTime();
-          var distance = countDownDate - now;
-          
-          if (distance < 0) {{
-            clearInterval(x);
-            document.getElementById("timer-display").style.display = "none";
-            document.querySelector(".date-label").style.display = "none";
-            document.getElementById("expired-msg").style.display = "block";
-            return;
-          }}
-          
-          var days = Math.floor(distance / (1000 * 60 * 60 * 24));
-          var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-          var seconds = Math.floor((distance % (1000 * 60)) / 1000);
-          
-          document.getElementById("days").innerText = days < 10 ? "0" + days : days;
-          document.getElementById("hours").innerText = hours < 10 ? "0" + hours : hours;
-          document.getElementById("minutes").innerText = minutes < 10 ? "0" + minutes : minutes;
-          document.getElementById("seconds").innerText = seconds < 10 ? "0" + seconds : seconds;
-          
-        }}, 1000);
-        </script>
-    </body>
-    </html>
+        <div style="margin-top:10px; font-size:13px; color:#7f8c8d;">الموعد النهائي: السبت 22 أغسطس 2026</div>
+    </div>
+    <script>
+    var dest = new Date("Aug 22, 2026 23:59:59").getTime();
+    var x = setInterval(function() {
+      var now = new Date().getTime(); var dist = dest - now;
+      if (dist < 0) { clearInterval(x); return; }
+      document.getElementById("d").innerText = Math.floor(dist / (1000 * 60 * 60 * 24));
+      document.getElementById("h").innerText = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      document.getElementById("m").innerText = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
+      document.getElementById("s").innerText = Math.floor((dist % (1000 * 60)) / 1000);
+    }, 1000);
+    </script>
     """
-    # زيادة ارتفاع المكون ليتناسب مع الكروت الجانبية
     components.html(timer_html, height=195)
 
-# 6. صندوق التعليمات الفاخر
 st.markdown("""
 <div class="instructions-box">
     <h3>📌 تعليمات هامة للتسجيل:</h3>
@@ -502,225 +240,121 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 7. التوقيت الزمني للمنصة وإغلاقها
-start_date = date(2026, 8, 8) 
-end_date = date(2026, 8, 22)
-today = date.today()
-
-if today < start_date:
-    st.warning("⏳ المنصة مغلقة حالياً. سيتم فتح باب التسجيل غداً الأحد 9-8-2026.")
-    st.stop()
-elif today > end_date:
-    st.error("❌ انتهى وقت التسجيل. تم إغلاق المنصة رسمياً.")
-    st.stop()
-
-if df is None:
-    st.error("⚠️ ملف قاعدة البيانات (data.xlsx) غير موجود في المستودع.")
-    st.stop()
-
-student_names = df['الاسم'].astype(str).tolist()
+start_date, end_date, today = date(2026, 8, 8), date(2026, 8, 22), date.today()
+if today < start_date: st.warning("⏳ المنصة مغلقة حالياً."); st.stop()
+elif today > end_date: st.error("❌ انتهى وقت التسجيل."); st.stop()
+if df is None: st.error("⚠️ ملف (data.xlsx) غير موجود."); st.stop()
 
 def get_dept(row):
     for col in ['القسم', 'شعبة', 'التخصص', 'البرنامج']:
-        if col in row.index and pd.notna(row[col]):
-            return str(row[col])
+        if col in row.index and pd.notna(row[col]): return str(row[col])
     return "غير محدد"
 
-# 8. البحث الذكي المنسدل
+student_names = df['الاسم'].astype(str).tolist()
 selected_name = st.selectbox("🔍 ابحث عن اسمك (اكتب أول حرفين من اسمك للبحث):", ["اختر اسم الطالب من هنا..."] + student_names)
 
 saved_record = None
-
-if selected_name and selected_name != "اختر اسم الطالب من هنا...":
+if selected_name != "اختر اسم الطالب من هنا...":
     student_data = df[df['الاسم'] == selected_name].iloc[0]
     dept_name = get_dept(student_data)
     
     if os.path.exists("student_requests.xlsx"):
         df_reqs_search = pd.read_excel("student_requests.xlsx", dtype=str)
         match = df_reqs_search[df_reqs_search['الاسم'] == selected_name]
-        if not match.empty:
-            saved_record = match.iloc[0]
+        if not match.empty: saved_record = match.iloc[0]
 
     st.success(f"✅ أهلاً بك يا {selected_name}.. تم العثور على بياناتك بنجاح!")
     
     colA, colB, colC, colD = st.columns(4)
-    with colA:
-        st.text_input("المجموع الكلي", value=str(student_data['المجموع']), disabled=True)
-    with colB:
-        st.text_input("النسبة المئوية (%)", value=str(student_data['النسبة']), disabled=True)
-    with colC:
-        st.text_input("التقدير الأكاديمي", value=str(student_data['التقدير']), disabled=True)
-    with colD:
-        st.text_input("القسم / الشعبة", value=dept_name, disabled=True)
+    with colA: st.text_input("المجموع الكلي", value=str(student_data['المجموع']), disabled=True)
+    with colB: st.text_input("النسبة المئوية (%)", value=str(student_data['النسبة']), disabled=True)
+    with colC: st.text_input("التقدير الأكاديمي", value=str(student_data['التقدير']), disabled=True)
+    with colD: st.text_input("القسم / الشعبة", value=dept_name, disabled=True)
         
     st.markdown("---")
-    
     st.markdown("### 🔒 الخطوة الأمنية: إدخال الرقم القومي (بمثابة كلمة السر)")
     
-    nat_id = st.text_input("الرقم القومي (14 رقماً):", max_chars=14, placeholder="أدخل الرقم القومي الخاص بك للتحقق")
-    phone = st.text_input("رقم الهاتف (واتساب):", max_chars=11, placeholder="01xxxxxxxx0")
+    nat_id = st.text_input("الرقم القومي (14 رقماً):", max_chars=14)
+    phone = st.text_input("رقم الهاتف (واتساب):", max_chars=11)
     
     can_proceed = False
     if len(nat_id) == 14 and len(phone) >= 10:
         if saved_record is not None:
-            saved_nat_id = str(saved_record['الرقم القومي']).strip().split('.')[0] 
-            current_nat_id = str(nat_id).strip()
-            
-            if current_nat_id == saved_nat_id:
-                st.info("💡 تم التحقق من هويتك بنجاح. يمكنك الآن تعديل رغباتك المسجلة مسبقاً وإعادة الحفظ.")
+            if str(nat_id).strip() == str(saved_record['الرقم القومي']).strip().split('.')[0]:
+                st.info("💡 تم التحقق من هويتك بنجاح. يمكنك التعديل وإعادة الحفظ.")
                 can_proceed = True
             else:
-                st.error("❌ تحذير أمني: الرقم القومي المدخل لا يتطابق مع الرقم الذي تم التسجيل به مسبقاً لهذا الاسم. لا يمكنك الدخول.")
-                can_proceed = False
+                st.error("❌ تحذير أمني: الرقم القومي المدخل لا يتطابق مع رقم التسجيل السابق.")
         else:
-            st.success("🔓 تم التحقق الأولي! يمكنك الآن ترتيب رغباتك أدناه (تذكر أن هذا الرقم القومي سيكون كلمة سرك للتعديل لاحقاً):")
+            st.success("🔓 تم التحقق الأولي! رتب رغباتك أدناه:")
             can_proceed = True
-    else:
-        st.warning("🔒 يرجى إدخال الرقم القومي المكون من 14 رقماً ورقم الهاتف لفتح خانات ترتيب الرغبات.")
 
     if can_proceed:
         st.markdown("---")
-        st.markdown("#### 🎯 حدد رغباتك بترتيب الأولوية (من الأولى إلى السابعة):")
+        st.markdown("#### 🎯 حدد رغباتك بترتيب الأولوية:")
+        all_opts = ["كرة القدم", "كرة اليد", "الكرة الطائرة", "كرة السلة", "الهوكي", "التنس الأرضي", "اسكواش"]
         
-        all_options = ["كرة القدم", "كرة اليد", "الكرة الطائرة", "كرة السلة", "الهوكي", "التنس الأرضي", "اسكواش"]
-        
-        def get_saved_choice(idx):
-            if saved_record is not None:
-                return saved_record.get(f'رغبة {idx}', "اختر التخصص...")
-            return "اختر التخصص..."
+        def g_idx(val, opts): return opts.index(val)+1 if val in opts else 0
+        def g_sav(idx): return saved_record.get(f'رغبة {idx}', "اختر التخصص...") if saved_record is not None else "اختر التخصص..."
 
-        def get_index(val, opts):
-            if val in opts:
-                return opts.index(val) + 1
-            return 0
-
-        r1_opts = ["اختر التخصص..."] + all_options
-        r1_val = get_saved_choice(1)
-        r1 = st.selectbox("⭐ الرغبة الأولى (الأساسية):", r1_opts, index=get_index(r1_val, all_options))
-        
-        opts_after_r1 = [opt for opt in all_options if opt != r1]
-        r2 = st.selectbox("الرغبة الثانية:", ["اختر التخصص..."] + opts_after_r1, index=get_index(get_saved_choice(2), opts_after_r1))
-        
-        opts_after_r2 = [opt for opt in opts_after_r1 if opt != r2]
-        r3 = st.selectbox("الرغبة الثالثة:", ["اختر التخصص..."] + opts_after_r2, index=get_index(get_saved_choice(3), opts_after_r2))
-        
-        opts_after_r3 = [opt for opt in opts_after_r2 if opt != r3]
-        r4 = st.selectbox("الرغبة الرابعة:", ["اختر التخصص..."] + opts_after_r3, index=get_index(get_saved_choice(4), opts_after_r3))
-        
-        opts_after_r4 = [opt for opt in opts_after_r3 if opt != r4]
-        r5 = st.selectbox("الرغبة الخامسة:", ["اختر التخصص..."] + opts_after_r4, index=get_index(get_saved_choice(5), opts_after_r4))
-        
-        opts_after_r5 = [opt for opt in opts_after_r4 if opt != r5]
-        r6 = st.selectbox("الرغبة السادسة:", ["اختر التخصص..."] + opts_after_r5, index=get_index(get_saved_choice(6), opts_after_r5))
-        
-        opts_after_r6 = [opt for opt in opts_after_r5 if opt != r6]
-        r7 = st.selectbox("الرغبة السابعة:", ["اختر التخصص..."] + opts_after_r6, index=get_index(get_saved_choice(7), opts_after_r6))
-        
-        st.markdown("<br>", unsafe_allow_html=True)
+        r1 = st.selectbox("⭐ الرغبة الأولى:", ["اختر التخصص..."] + all_opts, index=g_idx(g_sav(1), all_opts))
+        opts_r1 = [o for o in all_opts if o != r1]
+        r2 = st.selectbox("الرغبة الثانية:", ["اختر التخصص..."] + opts_r1, index=g_idx(g_sav(2), opts_r1))
+        opts_r2 = [o for o in opts_r1 if o != r2]
+        r3 = st.selectbox("الرغبة الثالثة:", ["اختر التخصص..."] + opts_r2, index=g_idx(g_sav(3), opts_r2))
+        opts_r3 = [o for o in opts_r2 if o != r3]
+        r4 = st.selectbox("الرغبة الرابعة:", ["اختر التخصص..."] + opts_r3, index=g_idx(g_sav(4), opts_r3))
+        opts_r4 = [o for o in opts_r3 if o != r4]
+        r5 = st.selectbox("الرغبة الخامسة:", ["اختر التخصص..."] + opts_r4, index=g_idx(g_sav(5), opts_r4))
+        opts_r5 = [o for o in opts_r4 if o != r5]
+        r6 = st.selectbox("الرغبة السادسة:", ["اختر التخصص..."] + opts_r5, index=g_idx(g_sav(6), opts_r5))
+        opts_r6 = [o for o in opts_r5 if o != r6]
+        r7 = st.selectbox("الرغبة السابعة:", ["اختر التخصص..."] + opts_r6, index=g_idx(g_sav(7), opts_r6))
         
         if st.button("💾 حفظ وتأكيد الرغبات نهائياً"):
-            selections = [r1, r2, r3, r4, r5, r6, r7]
-            
-            if "اختر التخصص..." in selections:
-                st.error("⚠️ يرجى استكمال ترتيب جميع الرغبات السبعة قبل الحفظ.")
-            elif len(set(selections)) < 7:
-                st.error("⚠️ لا يمكن تكرار نفس التخصص في رغبتين مختلفتين.")
+            sels = [r1, r2, r3, r4, r5, r6, r7]
+            if "اختر التخصص..." in sels: st.error("⚠️ يرجى استكمال جميع الرغبات.")
+            elif len(set(sels)) < 7: st.error("⚠️ لا يمكن تكرار نفس التخصص.")
             else:
                 new_data = pd.DataFrame({
-                    "الاسم": [selected_name],
-                    "الرقم القومي": [str(nat_id)],
-                    "رقم الهاتف": [str(phone)],
-                    "المجموع": [student_data['المجموع']],
-                    "النسبة": [student_data['النسبة']],
-                    "التقدير": [student_data['التقدير']],
-                    "القسم": [dept_name],
-                    "رغبة 1": [r1], "رغبة 2": [r2], "رغبة 3": [r3],
-                    "رغبة 4": [r4], "رغبة 5": [r5], "رغبة 6": [r6], "رغبة 7": [r7]
+                    "الاسم": [selected_name], "الرقم القومي": [str(nat_id)], "رقم الهاتف": [str(phone)],
+                    "المجموع": [student_data['المجموع']], "النسبة": [student_data['النسبة']],
+                    "التقدير": [student_data['التقدير']], "القسم": [dept_name],
+                    "رغبة 1": [r1], "رغبة 2": [r2], "رغبة 3": [r3], "رغبة 4": [r4], "رغبة 5": [r5], "رغبة 6": [r6], "رغبة 7": [r7]
                 })
                 
                 if os.path.exists("student_requests.xlsx"):
-                    df_requests_save = pd.read_excel("student_requests.xlsx", dtype=str)
-                    df_requests_save = df_requests_save[df_requests_save['الاسم'] != selected_name]
-                    df_requests_save = pd.concat([df_requests_save, new_data], ignore_index=True)
-                else:
-                    df_requests_save = new_data
+                    df_save = pd.read_excel("student_requests.xlsx", dtype=str)
+                    df_save = df_save[df_save['الاسم'] != selected_name]
+                    df_save = pd.concat([df_save, new_data], ignore_index=True)
+                else: df_save = new_data
                     
-                df_requests_save.to_excel("student_requests.xlsx", index=False)
+                df_save.to_excel("student_requests.xlsx", index=False)
+                
+                # --- إرسال الملف لـ GitHub مباشرة ---
+                push_to_github("student_requests.xlsx")
                 
                 st.session_state['just_saved'] = True
-                
-                # تحديث الصفحة برمجياً لضبط العدادات فوراً
                 st.rerun()
 
-        # عرض الإيصال
         if saved_record is not None or st.session_state.get('just_saved', False):
-            cur_r1 = r1 if 'r1' in locals() else saved_record.get('رغبة 1')
-            cur_r2 = r2 if 'r2' in locals() else saved_record.get('رغبة 2')
-            cur_r3 = r3 if 'r3' in locals() else saved_record.get('رغبة 3')
-            cur_r4 = r4 if 'r4' in locals() else saved_record.get('رغبة 4')
-            cur_r5 = r5 if 'r5' in locals() else saved_record.get('رغبة 5')
-            cur_r6 = r6 if 'r6' in locals() else saved_record.get('رغبة 6')
-            cur_r7 = r7 if 'r7' in locals() else saved_record.get('رغبة 7')
+            cr1, cr2, cr3 = r1 if 'r1' in locals() else saved_record.get('رغبة 1'), r2 if 'r2' in locals() else saved_record.get('رغبة 2'), r3 if 'r3' in locals() else saved_record.get('رغبة 3')
+            cr4, cr5, cr6, cr7 = r4 if 'r4' in locals() else saved_record.get('رغبة 4'), r5 if 'r5' in locals() else saved_record.get('رغبة 5'), r6 if 'r6' in locals() else saved_record.get('رغبة 6'), r7 if 'r7' in locals() else saved_record.get('رغبة 7')
 
-            receipt_html = f"""
-            <!DOCTYPE html>
-            <html lang="ar" dir="rtl">
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-                    body {{ font-family: 'Cairo', sans-serif; background-color: #fcfcfc; margin: 0; padding: 10px; direction: rtl; text-align: right; }}
-                    .receipt-box {{ background: #ffffff; border: 2px solid #1e3c72; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }}
-                    .header {{ text-align: center; border-bottom: 2px solid #1e3c72; padding-bottom: 15px; margin-bottom: 15px; }}
-                    .header h2 {{ color: #1e3c72; margin: 0; font-size: 20px; }}
-                    .header p {{ color: #555; margin: 5px 0 0 0; font-size: 13px; }}
-                    .content p {{ font-size: 14px; line-height: 1.8; margin: 6px 0; color: #333; }}
-                    ol {{ padding-right: 20px; font-weight: bold; margin: 10px 0; }}
-                    ol li {{ font-size: 14px; margin-bottom: 6px; color: #2c3e50; }}
-                    .footer {{ text-align: center; margin-top: 20px; font-size: 11px; color: #777; border-top: 1px solid #eee; padding-top: 10px; }}
-                    .print-btn-container {{ text-align: center; background: #f1f8e9; border: 1px solid #81c784; padding: 15px; border-radius: 10px; margin-top: 20px; }}
-                    .print-btn {{ background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 12px 25px; font-size: 17px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-family: 'Cairo', sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.15);}}
-                    .wa-btn {{ background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; padding: 12px 25px; font-size: 17px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-family: 'Cairo', sans-serif; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);}}
-                    @media print {{ .print-btn-container {{ display: none; }} .receipt-box {{ border: none; box-shadow: none; padding: 0; }} }}
-                </style>
-            </head>
-            <body>
-                <div class="receipt-box">
-                    <div class="header">
-                        <h2>إيصال تسجيل رغبات التخصصات الأكاديمية</h2>
-                        <p>قسم الرياضة الجماعية وألعاب المضرب - كلية علوم الرياضة - جامعة المنيا (2026 - 2027)</p>
-                    </div>
-                    <div class="content">
-                        <p><b>اسم الطالب:</b> {selected_name}</p>
-                        <p><b>الرقم القومي:</b> {nat_id}</p>
-                        <p><b>رقم الواتساب:</b> {phone}</p>
-                        <p><b>القسم / الشعبة:</b> {dept_name}</p>
-                        <p><b>المجموع الكلي:</b> {student_data['المجموع']} | <b>النسبة المئوية:</b> {student_data['النسبة']}% | <b>التقدير:</b> {student_data['التقدير']}</p>
-                        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
-                        <h4 style="color: #1e3c72; margin-bottom: 10px;">ترتيب الرغبات المعتمد:</h4>
-                        <ol>
-                            <li>الرغبة الأولى: {cur_r1}</li>
-                            <li>الرغبة الثانية: {cur_r2}</li>
-                            <li>الرغبة الثالثة: {cur_r3}</li>
-                            <li>الرغبة الرابعة: {cur_r4}</li>
-                            <li>الرغبة الخامسة: {cur_r5}</li>
-                            <li>الرغبة السادسة: {cur_r6}</li>
-                            <li>الرغبة السابعة: {cur_r7}</li>
-                        </ol>
-                    </div>
-                    <div class="footer">
-                        تم استخراج هذا المستند إلكترونياً من منصة الكنترول الرسمية ويعتبر مستنداً رسمياً للتسجيل.
-                    </div>
-                </div>
-                
-                <div class="print-btn-container">
-                    <a href="https://chat.whatsapp.com/IvBUaPqw5RfExr4ZrEjjWV" target="_blank" style="text-decoration: none;">
-                        <button class="wa-btn">💬 انضم الآن لجروب الواتساب الرسمي</button>
+            receipt = f"""
+            <div dir="rtl" style="background:#fff; border:2px solid #1e3c72; padding:20px; border-radius:15px; margin-top:20px;">
+                <h3 style="text-align:center; color:#1e3c72;">إيصال تسجيل الرغبات</h3>
+                <p><b>الطالب:</b> {selected_name}</p>
+                <p><b>الرقم القومي:</b> {nat_id}</p>
+                <hr>
+                <ol>
+                    <li>{cr1}</li><li>{cr2}</li><li>{cr3}</li><li>{cr4}</li><li>{cr5}</li><li>{cr6}</li><li>{cr7}</li>
+                </ol>
+                <div style="text-align:center; margin-top:15px;">
+                    <a href="https://chat.whatsapp.com/IvBUaPqw5RfExr4ZrEjjWV" target="_blank">
+                        <button style="background:#25D366; color:white; padding:10px; border:none; border-radius:8px; width:100%; font-weight:bold;">💬 انضم لجروب الواتساب</button>
                     </a>
-                    <button class="print-btn" onclick="window.print()">🖨️ طباعة أو حفظ الإيصال (PDF)</button>
-                    <p style="margin-top: 8px; color: #2e7d32; font-weight: 700; font-size: 14px; margin-bottom: 0;">📌 احفظ رغباتك وانضم للجروب لمتابعة أحدث التعليمات</p>
                 </div>
-            </body>
-            </html>
+            </div>
             """
-            components.html(receipt_html, height=650, scrolling=True)
+            components.html(receipt, height=450)
