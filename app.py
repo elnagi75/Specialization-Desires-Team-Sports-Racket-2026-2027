@@ -61,14 +61,21 @@ if admin_pass == "2027":
     tab1, tab2 = st.tabs(["📥 كشف الرغبات الخام", "⚙️ محرك التنسيق والإخراج الذكي"])
     
     with tab1:
-        st.info("هنا يتم تجميع بيانات الطلاب الذين سجلوا رغباتهم، ويمكنك تحميل الكشف الخام.")
-        if os.path.exists("student_requests.xlsx"):
-            df_requests = pd.read_excel("student_requests.xlsx", dtype=str)
-            st.dataframe(df_requests)
-            with open("student_requests.xlsx", "rb") as f:
-                st.download_button(label="📥 تحميل كشف الرغبات الخام (Excel)", data=f, file_name='student_requests_raw.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        else:
-            st.warning("لم يقم أي طالب بالتسجيل حتى الآن.")
+            st.info("هنا يتم تجميع بيانات الطلاب الذين سجلوا رغباتهم، ويمكنك تحميل الكشف الخام.")
+            if os.path.exists("student_requests.xlsx"):
+                try:
+                    df_requests = pd.read_excel("student_requests.xlsx", dtype=str)
+                except Exception:
+                    df_requests = pd.DataFrame()
+                
+                if not df_requests.empty:
+                    st.dataframe(df_requests)
+                    with open("student_requests.xlsx", "rb") as f:
+                        st.download_button(label="📥 تحميل كشف الرغبات الخام (Excel)", data=f, file_name='student_requests_raw.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                else:
+                    st.warning("الملف فارغ أو قيد التحديث.")
+            else:
+                st.warning("لم يقم أي طالب بالتسجيل حتى الآن.")
             
     with tab2:
         st.markdown("### 🎯 إعداد السعة الاستيعابية للتخصصات")
